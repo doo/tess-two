@@ -49,9 +49,9 @@ libjpeg_SOURCES_DIST =  jcapimin.c jcapistd.c jccoefct.c jccolor.c \
         jdmerge.c jdphuff.c jdpostct.c jdsample.c jdtrans.c jerror.c \
         jfdctflt.c jfdctfst.c jfdctint.c jidctflt.c jidctfst.c jidctint.c \
         jidctred.c jquant1.c jquant2.c jutils.c jmemmgr.c jmemnobs.c \
-	jaricom.c jcarith.c jdarith.c \
-	turbojpeg.c transupp.c jdatadst-tj.c jdatasrc-tj.c \
-	turbojpeg-mapfile
+		jaricom.c jcarith.c jdarith.c \
+		turbojpeg.c transupp.c jdatadst-tj.c jdatasrc-tj.c
+#turbojpeg-mapfile
 
 LOCAL_SRC_FILES:= $(libjpeg_SOURCES_DIST)
  

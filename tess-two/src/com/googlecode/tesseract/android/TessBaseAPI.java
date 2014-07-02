@@ -603,4 +603,6 @@ public class TessBaseAPI {
     private native void nativeSetOutputName(String name);
     
     private native void nativeReadConfigFile(String fileName);
+
+    private native boolean nativeProcessToPdf(int nativePix, String inputPath, String outputPath);
 }

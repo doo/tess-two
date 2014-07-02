@@ -21,6 +21,7 @@
 #include "common.h"
 #include "baseapi.h"
 #include "allheaders.h"
+#include "renderer.h"
 
 static jfieldID field_mNativeData;
 
@@ -476,6 +477,34 @@ void Java_com_googlecode_tesseract_android_TessBaseAPI_nativeReadConfigFile(JNIE
   nat->api.ReadConfigFile(c_file_name);
   env->ReleaseStringUTFChars(fileName, c_file_name);
 }
+
+jboolean Java_com_googlecode_tesseract_android_TessBaseAPI_nativeProcessToPdf(JNIEnv *env,
+                                                                            jobject thiz,
+                                                                            jint jPix,
+                                                                            jstring inputPath,
+                                                                            jstring outputPath) {
+  PIX *pixs = (PIX *) jPix;
+  native_data_t *nat = get_native_data(env, thiz);
+
+  const char *c_output_path = env->GetStringUTFChars(outputPath, NULL);
+  const char *c_input_path = env->GetStringUTFChars(inputPath, NULL);
+
+  tesseract::TessPDFRenderer* pdfRenderer = new tesseract::TessPDFRenderer(c_output_path, nat->api.GetDatapath());
+  const char* kUnknownTitle = "";
+  pdfRenderer->BeginDocument(kUnknownTitle);
+  bool result = nat->api.ProcessPage(
+    pixs, 0, c_input_path, NULL, 0, pdfRenderer
+  );
+  pdfRenderer->EndDocument();
+
+  delete pdfRenderer;
+
+  env->ReleaseStringUTFChars(outputPath, c_output_path);
+  env->ReleaseStringUTFChars(inputPath, c_input_path);
+
+  return result;
+}
+
 #ifdef __cplusplus
 }
 #endif

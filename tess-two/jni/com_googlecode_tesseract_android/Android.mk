@@ -47,14 +47,19 @@ LOCAL_C_INCLUDES := \
 LOCAL_CFLAGS := \
   -DHAVE_LIBLEPT \
   -DGRAPHICS_DISABLED \
-  --std=c++11 \ #TODO add this line depended on plattform. x86 compiler does not accept it
   -DUSE_STD_NAMESPACE \
   -D'VERSION="Android"' \
   -include ctype.h \
   -include unistd.h \
   -fpermissive \
   -Wno-deprecated \
+  -O3 \
   -D_GLIBCXX_PERMIT_BACKWARD_HASH   # fix for android-ndk-r8e/sources/cxx-stl/gnu-libstdc++/4.6/include/ext/hash_map:61:30: fatal error: backward_warning.h: No such file or directory
+
+#--std=c++11 x86 and mips doesn't support it
+ifeq ($(TARGET_ARCH),arm)
+	LOCAL_CFLAGS += --std=c++11
+endif
 
 # jni
 
