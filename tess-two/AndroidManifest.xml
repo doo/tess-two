@@ -19,4 +19,7 @@
           android:versionName="1.0">
     <uses-sdk android:minSdkVersion="10" 
         	  android:targetSdkVersion="19" />
+    <application
+        android:allowBackup="false">
+    </application>
 </manifest>
