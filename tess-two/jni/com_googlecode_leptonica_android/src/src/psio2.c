@@ -103,6 +103,15 @@
 
 #include <string.h>
 #include "allheaders.h"
+#include <android/log.h>
+
+#define LOG_TAG "Tesseract(native)"
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOG_ASSERT(_cond, ...) if (!_cond) __android_log_assert("conditional", LOG_TAG, __VA_ARGS__)
 
 /* --------------------------------------------*/
 #if  USE_PSIO   /* defined in environ.h */
@@ -1037,14 +1046,19 @@ L_COMP_DATA  *cid;
 
     if (!pixs)
         return (L_COMP_DATA *)ERROR_PTR("pixs not defined", procName, NULL);
+    LOGE("pixs defined");
     if (pixGetColormap(pixs))
         return (L_COMP_DATA *)ERROR_PTR("pixs has colormap", procName, NULL);
+    LOGE("pixs - no colormap");
     d = pixGetDepth(pixs);
     if (d != 8 && d != 32)
         return (L_COMP_DATA *)ERROR_PTR("pixs not 8 or 32 bpp", procName, NULL);
+    LOGE("8 or 32 bpp");
 
         /* Compress to a temp jpeg file */
-    fname = genTempFilename("/tmp", "temp.jpg", 1, 1);
+//    fname = genTempFilename("/tmp", "temp.jpg", 1, 1);
+    fname = genTempFilename("/sdcard", "temp.jpg", 1, 1);
+    LOGE("Filename %s", fname);
     pixWriteJpeg(fname, pixs, quality, 0);
 
     cid = l_generateJpegData(fname, ascii85flag);
@@ -2404,14 +2418,23 @@ PIXCMAP  *cmap;
 
     if (!pcid)
         return ERROR_INT("&cid not defined", procName, 1);
+
+    LOGE("cid defined");
     *pcid = NULL;
     if (!pixs)
         return ERROR_INT("pixs not defined", procName, 1);
+
+    LOGE("pixs defined");
     if (type != L_G4_ENCODE && type != L_JPEG_ENCODE &&
         type != L_FLATE_ENCODE)
         return ERROR_INT("invalid conversion type", procName, 1);
+
+
+    LOGE("Conversion type is valid");
     if (ascii85 != 0 && ascii85 != 1)
         return ERROR_INT("invalid ascii85", procName, 1);
+
+    LOGE("ascii85 is valid");
 
         /* Sanity check on requested encoding */
     d = pixGetDepth(pixs);
@@ -2428,8 +2451,10 @@ PIXCMAP  *cmap;
     }
 
     if (type == L_JPEG_ENCODE) {
+        LOGE("jpeg encode");
         if ((*pcid = pixGenerateJpegData(pixs, ascii85, quality)) == NULL)
             return ERROR_INT("jpeg data not made", procName, 1);
+        LOGE("jpeg data made");
     } else if (type == L_G4_ENCODE) {
         if ((*pcid = pixGenerateG4Data(pixs, ascii85)) == NULL)
             return ERROR_INT("g4 data not made", procName, 1);
@@ -2437,6 +2462,7 @@ PIXCMAP  *cmap;
         if ((*pcid = pixGenerateFlateData(pixs, ascii85)) == NULL)
             return ERROR_INT("flate data not made", procName, 1);
     } else {
+        LOGE("Invalid conversion type");
         return ERROR_INT("invalid conversion type", procName, 1);
     }
 

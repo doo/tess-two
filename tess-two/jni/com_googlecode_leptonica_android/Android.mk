@@ -47,6 +47,7 @@ LOCAL_SRC_FILES += \
   
 LOCAL_C_INCLUDES += \
   $(LOCAL_PATH) \
+  $(LIBJPEG_PATH) \
   $(LEPTONICA_PATH)/src
 
 LOCAL_LDLIBS += \
@@ -56,5 +57,6 @@ LOCAL_LDLIBS += \
 # common
 
 LOCAL_PRELINK_MODULE:= false
+LOCAL_STATIC_LIBRARIES := libjpeg
 
 include $(BUILD_SHARED_LIBRARY)

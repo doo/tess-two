@@ -9,6 +9,7 @@
 #include "strngs.h"
 #include "cube_utils.h"
 #include "allheaders.h"
+#include "common.h"
 
 #if !defined(VERSION)
 #include "version.h"
@@ -32,8 +33,8 @@ const int kCharWidth = 2;
  * PDF Renderer interface implementation
  **********************************************************************/
 
-TessPDFRenderer::TessPDFRenderer(const char *datadir)
-    : TessResultRenderer("PDF", "pdf") {
+TessPDFRenderer::TessPDFRenderer(const char* outputbase, const char *datadir)
+    : TessResultRenderer(outputbase, "pdf") {
   obj_  = 0;
   datadir_ = datadir;
   offsets_.push_back(0);
@@ -440,20 +441,26 @@ bool TessPDFRenderer::fileToPDFObj(char *filename, long int objnum,
   FILE *fp = fopen(filename, "rb");
   if (!fp)
     return false;
-  int format;
 
+  const char *filter;
+  int spp, w, h;
+  int cmyk = false;
+  int format;
   findFileFormatStream(fp, &format);
-  if (format != IFF_JFIF_JPEG) {
-    fclose(fp);
-    return false;
+  switch(format) {
+    case IFF_JFIF_JPEG:
+        freadHeaderJpeg(fp, &w, &h, &spp, NULL, &cmyk);
+        filter = "/DCTDecode";
+        break;
+    case IFF_JP2:
+        freadHeaderJp2k(fp, &w, &h, &spp);
+        filter = "/JPXDecode";
+        break;
+    default:
+      fclose(fp);
+      return false;
   }
 
-  fseek(fp, 0, SEEK_END);
-  long int jpeg_size = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-
-  int spp, cmyk, w, h;
-  freadHeaderJpeg(fp, &w, &h, &spp, NULL, &cmyk);
   const char *colorspace;
   switch (spp) {
     case 1:
@@ -472,6 +479,10 @@ bool TessPDFRenderer::fileToPDFObj(char *filename, long int objnum,
       return false;
   }
 
+  fseek(fp, 0, SEEK_END);
+  long int file_size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
   // IMAGE
   snprintf(b1, sizeof(b1),
            "%ld 0 obj\n"
@@ -482,10 +493,10 @@ bool TessPDFRenderer::fileToPDFObj(char *filename, long int objnum,
            "  /Width %d\n"
            "  /Height %d\n"
            "  /BitsPerComponent 8\n"
-           "  /Filter /DCTDecode\n"
+           "  /Filter %s\n"
            ">>\n"
-           "stream\n", objnum, jpeg_size,
-           colorspace, w, h);
+           "stream\n", objnum, file_size,
+           colorspace, w, h, filter);
   size_t b1_len = strlen(b1);
 
   snprintf(b2, sizeof(b2),
@@ -494,17 +505,17 @@ bool TessPDFRenderer::fileToPDFObj(char *filename, long int objnum,
            "endobj\n");
   size_t b2_len = strlen(b2);
 
-  *pdf_object_size = b1_len + jpeg_size + b2_len;
+  *pdf_object_size = b1_len + file_size + b2_len;
   *pdf_object = new char[*pdf_object_size];
   if (!pdf_object)
     return false;
   memcpy(*pdf_object, b1, b1_len);
-  if (static_cast<int>(fread(*pdf_object + b1_len, 1, jpeg_size, fp)) !=
-      jpeg_size) {
+  if (static_cast<int>(fread(*pdf_object + b1_len, 1, file_size, fp)) !=
+      file_size) {
     delete[] pdf_object;
     return false;
   }
-  memcpy(*pdf_object + b1_len + jpeg_size, b2, b2_len);
+  memcpy(*pdf_object + b1_len + file_size, b2, b2_len);
   fclose(fp);
   return true;
 }
@@ -512,8 +523,10 @@ bool TessPDFRenderer::fileToPDFObj(char *filename, long int objnum,
 bool TessPDFRenderer::pixToPDFObj(Pix *pix, long int objnum,
                                   char **pdf_object,
                                   long int *pdf_object_size) {
-  if (!pdf_object_size || !pdf_object)
+  if (!pdf_object_size || !pdf_object) {
+    LOGE("Not PDF Object");
     return false;
+  }
   *pdf_object = NULL;
   *pdf_object_size = 0;
   char b0[kBasicBufSize];
@@ -522,10 +535,15 @@ bool TessPDFRenderer::pixToPDFObj(Pix *pix, long int objnum,
   L_COMP_DATA *cid;
   int encoding_type;
   const int kJpegQuality = 85;
-  if (selectDefaultPdfEncoding(pix, &encoding_type) != 0)
+  if (selectDefaultPdfEncoding(pix, &encoding_type) != 0) {
+    LOGE("Default PDF encoding failed");
     return false;
-  if (pixGenerateCIData(pix, encoding_type, kJpegQuality, 0, &cid) != 0)
+  }
+
+  if (pixGenerateCIData(pix, encoding_type, kJpegQuality, 0, &cid) != 0) {
+    LOGE("CI Generation failed");
     return false;
+  }
 
   const char *filter;
   switch(encoding_type) {
@@ -589,8 +607,10 @@ bool TessPDFRenderer::pixToPDFObj(Pix *pix, long int objnum,
 
   *pdf_object_size = b1_len + cid->nbytescomp + b2_len;
   *pdf_object = new char[*pdf_object_size];
-  if (!pdf_object)
+  if (!pdf_object) {
+     LOGE("Pdf object char is NULL");
     return false;
+  }
   memcpy(*pdf_object, b1, b1_len);
   memcpy(*pdf_object + b1_len, cid->datacomp, cid->nbytescomp);
   memcpy(*pdf_object + b1_len + cid->nbytescomp, b2, b2_len);
@@ -604,8 +624,10 @@ bool TessPDFRenderer::AddImageHandler(TessBaseAPI* api) {
   Pix *pix = api->GetInputImage();
   char *filename = (char *)api->GetInputName();
   int ppi = api->GetSourceYResolution();
-  if (!pix || ppi <= 0)
+  if (!pix || ppi <= 0) {
+    LOGE("pix is NULL or ppi <= 0");
     return false;
+  }
   double width = pixGetWidth(pix) * 72.0 / ppi;
   double height = pixGetHeight(pix) * 72.0 / ppi;
 
@@ -668,6 +690,7 @@ bool TessPDFRenderer::AddImageHandler(TessBaseAPI* api) {
   char *pdf_object;
   if (!fileToPDFObj(filename, obj_, &pdf_object, &objsize)) {
     if (!pixToPDFObj(pix, obj_, &pdf_object, &objsize)) {
+      LOGE("pixToPDF failed");
       return false;
     }
   }

@@ -47,7 +47,7 @@ LOCAL_C_INCLUDES := \
 LOCAL_CFLAGS := \
   -DHAVE_LIBLEPT \
   -DGRAPHICS_DISABLED \
-  --std=c++11 \
+  --std=c++11 \ #TODO add this line depended on plattform. x86 compiler does not accept it
   -DUSE_STD_NAMESPACE \
   -D'VERSION="Android"' \
   -include ctype.h \
