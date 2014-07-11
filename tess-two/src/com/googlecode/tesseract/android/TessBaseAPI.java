@@ -31,7 +31,7 @@ import java.io.File;
  * Java interface for the Tesseract OCR engine. Does not implement all available
  * JNI methods, but does implement enough to be useful. Comments are adapted
  * from original Tesseract source.
- * 
+ *
  * @author alanv@google.com (Alan Viverette)
  */
 public class TessBaseAPI {
@@ -90,26 +90,26 @@ public class TessBaseAPI {
     	/** Number of enum entries. */
     	public static final int PSM_COUNT = 13;
     }
-    
+
     /** Whitelist of characters to recognize. */
     public static final String VAR_CHAR_WHITELIST = "tessedit_char_whitelist";
 
     /** Blacklist of characters to not recognize. */
     public static final String VAR_CHAR_BLACKLIST = "tessedit_char_blacklist";
-    
+
     /** Run Tesseract only - fastest */
     public static final int OEM_TESSERACT_ONLY = 0;
-    
+
     /** Run Cube only - better accuracy, but slower */
     public static final int OEM_CUBE_ONLY = 1;
-    
+
     /** Run both and combine results - best accuracy */
     public static final int OEM_TESSERACT_CUBE_COMBINED = 2;
-    
+
     /** Default OCR engine mode. */
     public static final int OEM_DEFAULT = 3;
 
-    
+
     /**
      * Elements of the page hierarchy, used in {@link ResultIterator} to provide
      * functions that operate on each level without having to have 5x as many
@@ -134,7 +134,7 @@ public class TessBaseAPI {
         /** Symbol/character within a word. */
         public static final int RIL_SYMBOL = 4;
     };
-    
+
     /**
      * Constructs an instance of TessBaseAPI.
      */
@@ -145,7 +145,7 @@ public class TessBaseAPI {
     /**
      * Called by the GC to clean up the native data that we set up when we
      * construct the object.
-     * 
+     *
      * Altered from original version to avoid a crash-causing bug in OCR Test application.
      */
     @Override
@@ -237,7 +237,7 @@ public class TessBaseAPI {
         if (!tessdata.exists() || !tessdata.isDirectory())
             throw new IllegalArgumentException("Data path must contain subfolder tessdata!");
 
-        return nativeInitOem(datapath, language, ocrEngineMode);	
+        return nativeInitOem(datapath, language, ocrEngineMode);
     }
 
     /**
@@ -246,13 +246,13 @@ public class TessBaseAPI {
      * returned. If hin loaded eng automatically as well, then that will
      * not be included in this list. To find the languages actually
      * loaded use GetLoadedLanguagesAsVector.
-     * 
+     *
      * @return the last-used language code
      */
     public String getInitLanguagesAsString() {
     	return nativeGetInitLanguagesAsString();
     }
-    
+
     /**
      * Frees up recognition results and any stored image data, without actually
      * freeing any recognition data that would be time-consuming to reload.
@@ -438,39 +438,39 @@ public class TessBaseAPI {
 
     /**
      * Returns the result of page layout analysis as a Pixa, in reading order.
-     * 
+     *
      * @return Pixa contaning page layout bounding boxes
      */
     public Pixa getRegions() {
         return new Pixa(nativeGetRegions(), 0, 0);
     }
-    
+
     /**
      * Returns the textlines as a Pixa.
-     * 
+     *
      * Block IDs are not returned.
-     * 
+     *
      * @return Pixa containing textlines
      */
     public Pixa getTextlines() {
 	return new Pixa(nativeGetTextlines(), 0, 0);
     }
-    
+
     /**
      * Returns the strips as a Pixa.
-     * 
+     *
      * Block IDs are not returned.
-     * 
+     *
      * @return Pixa containing strips
      */
     public Pixa getStrips() {
 	return new Pixa(nativeGetStrips(), 0, 0);
-    }    
-    
+    }
+
     /**
      * Returns the word bounding boxes as a Pixa, in reading order.
-     * 
-     * @return Pixa containing word bounding boxes 
+     *
+     * @return Pixa containing word bounding boxes
      */
     public Pixa getWords() {
         return new Pixa(nativeGetWords(), 0, 0);
@@ -485,55 +485,84 @@ public class TessBaseAPI {
 
         return new ResultIterator(nativeResultIterator);
     }
-    
+
     /**
      * Make a HTML-formatted string with hOCR markup from the internal data
-     * structures.  
-     * 
-     * @param page is 0-based but will appear in the output as 1-based. 
+     * structures.
+     *
+     * @param page is 0-based but will appear in the output as 1-based.
      * @return HTML-formatted string with hOCR markup
      */
     public String getHOCRText(int page){
         return nativeGetHOCRText(page);
     }
-    
+
     /**
      * Set the name of the input file. Needed only for training and
      * reading a UNLV zone file.
-     * 
+     *
      * @param name input file name
      */
     public void setInputName(String name){
         nativeSetInputName(name);
-    } 
-    
+    }
+
     /**
-     * Set the name of the output files. 
-     * Needed only for debugging. 
+     * Set the name of the output files.
+     * Needed only for debugging.
      * @param name output file name
      */
     public void setOutputName(String name){
         nativeSetOutputName(name);
-    } 
-    
+    }
+
     /**
      * Read a "config" file containing a set of variable, value pairs.
      * Searches the standard places: <i>tessdata/configs, tessdata/tessconfigs</i>.
-     * 
+     *
      * @param filename the configuration filename, without path
      */
     public void ReadConfigFile(String filename){
         nativeReadConfigFile(filename);
     }
-    
+
     /**
-     * The recognized text is returned as coded in the same format as a UTF8 
+     * The recognized text is returned as coded in the same format as a UTF8
      * box file used in training.
-     * 
+     *
      * @param page is a 0-based page index that will appear in the box file.
      */
     public String getBoxText(int page){
         return nativeGetBoxText(page);
+    }
+
+    /**
+     * Starts document creation
+     *
+     * @return {@code true} on success. {@code false} on failure
+     */
+    public boolean beginDocument(TessPdfRenderer tessPdfRenderer) {
+        return nativeBeginDocument(tessPdfRenderer.getNativePointer());
+    }
+
+    /**
+     * Ends document creation
+     *
+     * @return {@code true} on success. {@code false} on failure
+     */
+    public boolean endDocument(TessPdfRenderer tessPdfRenderer) {
+        return nativeEndDocument(tessPdfRenderer.getNativePointer());
+    }
+
+    /**
+     * Appends sandwiched page to opened document (if any).
+     * @param imageToProcess    image which will be used for OCR
+     * @param imageToWrite      image which will be written into resulting document
+     *
+     * @return {@code true} on success. {@code false} on failure
+     */
+    public boolean addPageToDocument(Pix imageToProcess, String imageToWrite, TessPdfRenderer tessPdfRenderer) {
+        return nativeAddPageToDocument(imageToProcess.getNativePix(), imageToWrite, tessPdfRenderer.getNativePointer());
     }
 
     // ******************
@@ -556,11 +585,11 @@ public class TessBaseAPI {
     private native void nativeFinalize();
 
     private native boolean nativeInit(String datapath, String language);
-    
+
     private native boolean nativeInitOem(String datapath, String language, int mode);
 
     private native String nativeGetInitLanguagesAsString();
-    
+
     private native void nativeClear();
 
     private native void nativeEnd();
@@ -583,7 +612,7 @@ public class TessBaseAPI {
     private native void nativeSetDebug(boolean debug);
 
     private native void nativeSetPageSegMode(int mode);
-    
+
     private native int nativeGetRegions();
 
     private native int nativeGetTextlines();
@@ -593,16 +622,20 @@ public class TessBaseAPI {
     private native int nativeGetWords();
 
     private native int nativeGetResultIterator();
-    
+
     private native String nativeGetBoxText(int page_number);
-    
+
     private native String nativeGetHOCRText(int page_number);
-    
+
     private native void nativeSetInputName(String name);
-    
+
     private native void nativeSetOutputName(String name);
-    
+
     private native void nativeReadConfigFile(String fileName);
 
-    private native boolean nativeProcessToPdf(int nativePix, String inputPath, String outputPath);
+    private native boolean nativeBeginDocument(long rendererPointer);
+
+    private native boolean nativeEndDocument(long rendererPointer);
+
+    private native boolean nativeAddPageToDocument(int nativePix, String imagePath, long rendererPointer);
 }

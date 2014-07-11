@@ -1,10 +1,54 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>io.scanbot</groupId>
-  <artifactId>tess-two</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <packaging>apklib</packaging>
-  <dependencies>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.scanbot</groupId>
+    <artifactId>tess-two</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>apklib</packaging>
+
+    <distributionManagement>
+        <repository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>nexus</id>
+            <name>doo releases maven repo</name>
+            <url>http://nexus.doo.net/nexus/content/repositories/releases/</url>
+            <layout>default</layout>
+        </repository>
+
+        <snapshotRepository>
+            <uniqueVersion>true</uniqueVersion>
+            <id>nexus</id>
+            <name>doo snapshots maven repo</name>
+            <url>http://nexus.doo.net/nexus/content/repositories/snapshots/</url>
+            <layout>default</layout>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://nexus.doo.net/nexus/content/repositories/releases/</url>
+            <layout>default</layout>
+        </repository>
+
+        <repository>
+            <id>nexus-snapshots</id>
+            <url>http://nexus.doo.net/nexus/content/repositories/snapshots/</url>
+            <layout>default</layout>
+        </repository>
+
+        <repository>
+            <id>oss-sonatype</id>
+            <name>oss-sonatype</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <dependencies>
         <dependency>
             <groupId>android</groupId>
             <artifactId>android</artifactId>
@@ -18,10 +62,10 @@
             <version>4.10</version>
         </dependency>
     </dependencies>
- 
-    <build> 
+
+    <build>
         <sourceDirectory>src</sourceDirectory>
-         
+
         <plugins>
             <plugin>
                 <groupId>com.jayway.maven.plugins.android.generation2</groupId>
@@ -29,16 +73,16 @@
                 <extensions>true</extensions>
                 <executions>
                     <execution>
-                      <phase>process-classes</phase>
-                      <goals>
-                        <goal>ndk-build</goal>
-                      </goals>
-                      <configuration>
-                        <target>all</target>
-                        <ndkArchitecture>armeabi armeabi-v7a</ndkArchitecture>
-                      </configuration>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>ndk-build</goal>
+                        </goals>
+                        <configuration>
+                            <target>all</target>
+                            <ndkArchitecture>armeabi armeabi-v7a</ndkArchitecture>
+                        </configuration>
                     </execution>
-                  </executions>
+                </executions>
                 <configuration>
                     <sdk>
                         <platform>19</platform>
