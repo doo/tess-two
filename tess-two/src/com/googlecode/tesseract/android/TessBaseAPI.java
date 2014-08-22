@@ -649,5 +649,5 @@ public class TessBaseAPI {
 
     private native boolean nativeEndDocument(long rendererPointer);
 
-    private native boolean nativeAddPageToDocument(int nativePix, String imagePath, long rendererPointer);
+    private native boolean nativeAddPageToDocument(long nativePix, String imagePath, long rendererPointer);
 }
