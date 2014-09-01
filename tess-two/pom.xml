@@ -8,7 +8,7 @@
     <packaging>apklib</packaging>
 
     <scm>
-        <developerConnection>scm:git:https://github.com/doo/shoeboxed-api-java.git
+        <developerConnection>scm:git:https://github.com/doo/tess-two.git
         </developerConnection>
     </scm>
 
