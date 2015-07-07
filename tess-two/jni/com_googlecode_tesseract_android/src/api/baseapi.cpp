@@ -48,10 +48,6 @@
 #include <iterator>
 #include <fstream>
 
-#if !defined(VERSION)
-#include "version.h"
-#endif
-
 #include "allheaders.h"
 
 #include "baseapi.h"
@@ -143,7 +139,7 @@ TessBaseAPI::~TessBaseAPI() {
  * Returns the version identifier as a static string. Do not delete.
  */
 const char* TessBaseAPI::Version() {
-  return VERSION;
+  return TESSERACT_VERSION_STR;
 }
 
 /**
@@ -795,6 +791,10 @@ int CubeAPITest(Boxa* boxa_blocks, Pixa* pixa_blocks,
  * Runs page layout analysis in the mode set by SetPageSegMode.
  * May optionally be called prior to Recognize to get access to just
  * the page layout results. Returns an iterator to the results.
+ * If merge_similar_words is true, words are combined where suitable for use
+ * with a line recognizer. Use if you want to use AnalyseLayout to find the
+ * textlines, and then want to process textline fragments with an external
+ * line recognizer.
  * Returns NULL on error or an empty page.
  * The returned iterator must be deleted after use.
  * WARNING! This class points to data held within the TessBaseAPI class, and
@@ -802,11 +802,11 @@ int CubeAPITest(Boxa* boxa_blocks, Pixa* pixa_blocks,
  * has not been subjected to a call of Init, SetImage, Recognize, Clear, End
  * DetectOS, or anything else that changes the internal PAGE_RES.
  */
-PageIterator* TessBaseAPI::AnalyseLayout() {
+PageIterator* TessBaseAPI::AnalyseLayout(bool merge_similar_words) {
   if (FindLines() == 0) {
     if (block_list_->empty())
       return NULL;  // The page was empty.
-    page_res_ = new PAGE_RES(block_list_, NULL);
+    page_res_ = new PAGE_RES(merge_similar_words, block_list_, NULL);
     DetectParagraphs(false);
     return new PageIterator(
         page_res_, tesseract_, thresholder_->GetScaleFactor(),
@@ -828,18 +828,22 @@ int TessBaseAPI::Recognize(ETEXT_DESC* monitor) {
   if (page_res_ != NULL)
     delete page_res_;
   if (block_list_->empty()) {
-    page_res_ = new PAGE_RES(block_list_, &tesseract_->prev_word_best_choice_);
+    page_res_ = new PAGE_RES(false, block_list_,
+                             &tesseract_->prev_word_best_choice_);
     return 0; // Empty page.
   }
 
   tesseract_->SetBlackAndWhitelist();
   recognition_done_ = true;
-  if (tesseract_->tessedit_resegment_from_line_boxes)
+  if (tesseract_->tessedit_resegment_from_line_boxes) {
     page_res_ = tesseract_->ApplyBoxes(*input_file_, true, block_list_);
-  else if (tesseract_->tessedit_resegment_from_boxes)
+  } else if (tesseract_->tessedit_resegment_from_boxes) {
     page_res_ = tesseract_->ApplyBoxes(*input_file_, false, block_list_);
-  else
-    page_res_ = new PAGE_RES(block_list_, &tesseract_->prev_word_best_choice_);
+  } else {
+    // TODO(rays) LSTM here.
+    page_res_ = new PAGE_RES(false,
+                             block_list_, &tesseract_->prev_word_best_choice_);
+  }
   if (tesseract_->tessedit_make_boxes_from_boxes) {
     tesseract_->CorrectClassifyWords(page_res_);
     return 0;
@@ -905,7 +909,8 @@ int TessBaseAPI::RecognizeForChopTest(ETEXT_DESC* monitor) {
 
   recognition_done_ = true;
 
-  page_res_ = new PAGE_RES(block_list_, &(tesseract_->prev_word_best_choice_));
+  page_res_ = new PAGE_RES(false, block_list_,
+                           &(tesseract_->prev_word_best_choice_));
 
   PAGE_RES_IT page_res_it(page_res_);
 
@@ -924,7 +929,7 @@ void TessBaseAPI::SetInputImage(Pix *pix) {
     pixDestroy(&input_image_);
   input_image_ = NULL;
   if (pix)
-    input_image_ = pixClone(pix);
+    input_image_ = pixCopy(NULL, pix);
 }
 
 Pix* TessBaseAPI::GetInputImage() {
@@ -1062,7 +1067,6 @@ bool TessBaseAPI::ProcessPagesMultipageTiff(const l_uint8 *data,
 bool TessBaseAPI::ProcessPages(const char* filename,
                                const char* retry_config, int timeout_millisec,
                                TessResultRenderer* renderer) {
-  LOGE("Start processing");
   PERF_COUNT_START("ProcessPages")
   bool stdInput = !strcmp(filename, "stdin") || !strcmp(filename, "-");
   if (stdInput) {
@@ -1073,7 +1077,6 @@ bool TessBaseAPI::ProcessPages(const char* filename,
   }
 
   if (stream_filelist) {
-    LOGE("Stream file list");
     return ProcessPagesFileList(stdin, NULL, retry_config,
                                 timeout_millisec, renderer,
                                 tesseract_->tessedit_page_number);
@@ -1093,7 +1096,6 @@ bool TessBaseAPI::ProcessPages(const char* filename,
       buf.assign((std::istreambuf_iterator<char>(ifs)),
                  (std::istreambuf_iterator<char>()));
     } else {
-      LOGE("Cannot open input file");
       tprintf("ERROR: Can not open input file %s\n", filename);
       return false;
     }
@@ -1106,7 +1108,6 @@ bool TessBaseAPI::ProcessPages(const char* filename,
 
   // Maybe we have a filelist
   if (format == IFF_UNKNOWN) {
-    LOGE("Format unknown");
     STRING s(buf.c_str());
     return ProcessPagesFileList(NULL, &s, retry_config,
                                 timeout_millisec, renderer,
@@ -1122,10 +1123,8 @@ bool TessBaseAPI::ProcessPages(const char* filename,
   // Fail early if we can, before producing any output
   Pix *pix = NULL;
   if (!tiff) {
-//    pix = pixReadMem(data, buf.size());
-    pix = pixRead(filename);
+    pix = pixReadMem(data, buf.size());
     if (pix == NULL) {
-      LOGE("Not tiff. Read mem failed: %s", filename);
       return false;
     }
   }
@@ -1133,7 +1132,6 @@ bool TessBaseAPI::ProcessPages(const char* filename,
   // Begin the output
   const char* kUnknownTitle = "";
   if (renderer && !renderer->BeginDocument(kUnknownTitle)) {
-    LOGE("Begin document failed");
     pixDestroy(&pix);
     return false;
   }
@@ -1152,10 +1150,8 @@ bool TessBaseAPI::ProcessPages(const char* filename,
 
   // End the output
   if (!r || (renderer && !renderer->EndDocument())) {
-    LOGE("End document failed");
     return false;
   }
-  LOGE("Processing finished");
   PERF_COUNT_END
   return true;
 }
@@ -1208,11 +1204,8 @@ bool TessBaseAPI::ProcessPage(Pix* pix, int page_index, const char* filename,
     ReadConfigFile(kOldVarsFile);
   }
 
-  LOGE("Failed %d", failed);
-
   if (renderer && !failed) {
     failed = !renderer->AddImage(this);
-    LOGE("Failed %d", failed);
   }
   PERF_COUNT_END
   return !failed;
@@ -1374,6 +1367,8 @@ char* TessBaseAPI::GetHOCRText(int page_number) {
 
   int lcnt = 1, bcnt = 1, pcnt = 1, wcnt = 1;
   int page_id = page_number + 1;  // hOCR uses 1-based page numbers.
+  bool font_info = false;
+  GetBoolVariable("hocr_font_info", &font_info);
 
   STRING hocr_str("");
 
@@ -1400,7 +1395,7 @@ char* TessBaseAPI::GetHOCRText(int page_number) {
   hocr_str.add_str_int("  <div class='ocr_page' id='page_", page_id);
   hocr_str += "' title='image \"";
   if (input_file_) {
-    HOcrEscape(input_file_->string(), hocr_str);
+    hocr_str += HOcrEscape(input_file_->string());
   } else {
     hocr_str += "unknown";
   }
@@ -1446,12 +1441,23 @@ char* TessBaseAPI::GetHOCRText(int page_number) {
     hocr_str.add_str_int("<span class='ocrx_word' id='word_", page_id);
     hocr_str.add_str_int("_", wcnt);
     int left, top, right, bottom;
+    bool bold, italic, underlined, monospace, serif, smallcaps;
+    int pointsize, font_id;
+    const char *font_name;
     res_it->BoundingBox(RIL_WORD, &left, &top, &right, &bottom);
+    font_name = res_it->WordFontAttributes(&bold, &italic, &underlined,
+                                           &monospace, &serif, &smallcaps,
+                                           &pointsize, &font_id);
     hocr_str.add_str_int("' title='bbox ", left);
     hocr_str.add_str_int(" ", top);
     hocr_str.add_str_int(" ", right);
     hocr_str.add_str_int(" ", bottom);
     hocr_str.add_str_int("; x_wconf ", res_it->Confidence(RIL_WORD));
+    if (font_info) {
+      hocr_str += "; x_font ";
+      hocr_str += HOcrEscape(font_name);
+      hocr_str.add_str_int("; x_fsize ", pointsize);
+    }
     hocr_str += "'";
     if (res_it->WordRecognitionLanguage()) {
       hocr_str += " lang='";
@@ -1465,12 +1471,6 @@ char* TessBaseAPI::GetHOCRText(int page_number) {
         break;
     }
     hocr_str += ">";
-    bool bold, italic, underlined, monospace, serif, smallcaps;
-    int pointsize, font_id;
-    // TODO(rays): Is hOCR interested in the font name?
-    (void) res_it->WordFontAttributes(&bold, &italic, &underlined,
-                                      &monospace, &serif, &smallcaps,
-                                      &pointsize, &font_id);
     bool last_word_in_line = res_it->IsAtFinalElement(RIL_TEXTLINE, RIL_WORD);
     bool last_word_in_para = res_it->IsAtFinalElement(RIL_PARA, RIL_WORD);
     bool last_word_in_block = res_it->IsAtFinalElement(RIL_BLOCK, RIL_WORD);
@@ -1480,7 +1480,7 @@ char* TessBaseAPI::GetHOCRText(int page_number) {
       const char *grapheme = res_it->GetUTF8Text(RIL_SYMBOL);
       if (grapheme && grapheme[0] != 0) {
         if (grapheme[1] == 0) {
-          HOcrEscape(grapheme, hocr_str);
+          hocr_str += HOcrEscape(grapheme);
         } else {
           hocr_str += grapheme;
         }
@@ -1962,7 +1962,7 @@ void TessBaseAPI::SetFillLatticeFunc(FillLatticeFunc f) {
 /** Common code for setting the image. */
 bool TessBaseAPI::InternalSetImage() {
   if (tesseract_ == NULL) {
-    tprintf("Please call Init before attempting to send an image.");
+    tprintf("Please call Init before attempting to set an image.");
     return false;
   }
   if (thresholder_ == NULL)
@@ -1988,7 +1988,10 @@ void TessBaseAPI::Threshold(Pix** pix) {
     // than over-estimate resolution.
     thresholder_->SetSourceYResolution(kMinCredibleResolution);
   }
-  thresholder_->ThresholdToPix(pix);
+  PageSegMode pageseg_mode =
+      static_cast<PageSegMode>(
+          static_cast<int>(tesseract_->tessedit_pageseg_mode));
+  thresholder_->ThresholdToPix(pageseg_mode, pix);
   thresholder_->GetImageSizes(&rect_left_, &rect_top_,
                               &rect_width_, &rect_height_,
                               &image_width_, &image_height_);
@@ -2343,7 +2346,7 @@ void TessBaseAPI::AdaptToCharacter(const char *unichar_repr,
 
 
 PAGE_RES* TessBaseAPI::RecognitionPass1(BLOCK_LIST* block_list) {
-  PAGE_RES *page_res = new PAGE_RES(block_list,
+  PAGE_RES *page_res = new PAGE_RES(false, block_list,
                                     &(tesseract_->prev_word_best_choice_));
   tesseract_->recog_all_words(page_res, NULL, NULL, NULL, 1);
   return page_res;
@@ -2352,7 +2355,7 @@ PAGE_RES* TessBaseAPI::RecognitionPass1(BLOCK_LIST* block_list) {
 PAGE_RES* TessBaseAPI::RecognitionPass2(BLOCK_LIST* block_list,
                                         PAGE_RES* pass1_result) {
   if (!pass1_result)
-    pass1_result = new PAGE_RES(block_list,
+    pass1_result = new PAGE_RES(false, block_list,
                                 &(tesseract_->prev_word_best_choice_));
   tesseract_->recog_all_words(pass1_result, NULL, NULL, NULL, 2);
   return pass1_result;
@@ -2592,9 +2595,9 @@ CubeRecoContext *TessBaseAPI::GetCubeRecoContext() const {
   return (tesseract_ == NULL) ? NULL : tesseract_->GetCubeRecoContext();
 }
 
-
 /** Escape a char string - remove <>&"' with HTML codes. */
-void HOcrEscape(const char* text, STRING& ret) {
+STRING HOcrEscape(const char* text) {
+  STRING ret;
   const char *ptr;
   for (ptr = text; *ptr; ptr++) {
     switch (*ptr) {
@@ -2606,5 +2609,7 @@ void HOcrEscape(const char* text, STRING& ret) {
       default: ret += *ptr;
     }
   }
+  return ret;
 }
+
 }  // namespace tesseract.
