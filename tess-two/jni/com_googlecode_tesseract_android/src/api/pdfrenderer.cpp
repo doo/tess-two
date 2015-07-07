@@ -655,7 +655,7 @@ bool TessPDFRenderer::EndDocumentHandler() {
   snprintf(buf, sizeof(buf),
            "%ld 0 obj\n"
            "<<\n"
-           "  /Producer (Tesseract %s)\n"
+           "  /Producer (Scanbot for Android %s)\n"
            "  /CreationDate (D:%s)\n"
            "  /Title (%s)"
            ">>\n"
