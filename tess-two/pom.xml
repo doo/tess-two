@@ -5,7 +5,7 @@
     <groupId>io.scanbot</groupId>
     <artifactId>tess-two</artifactId>
     <version>0.5-SNAPSHOT</version>
-    <packaging>apklib</packaging>
+    <packaging>aar</packaging>
 
     <distributionManagement>
         <repository>
@@ -70,6 +70,7 @@
             <plugin>
                 <groupId>com.jayway.maven.plugins.android.generation2</groupId>
                 <artifactId>android-maven-plugin</artifactId>
+                <version>3.9.0-rc.2</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
