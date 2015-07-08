@@ -12,37 +12,37 @@ BLACKLIST_SRC_FILES := \
   %viewer/svpaint.cpp
 
 TESSERACT_SRC_FILES := \
-  $(wildcard $(TESSERACT_PATH)/api/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/ccmain/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/ccstruct/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/ccutil/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/classify/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/cube/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/cutil/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/dict/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/opencl/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/neural_networks/runtime/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/textord/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/viewer/*.cpp) \
-  $(wildcard $(TESSERACT_PATH)/wordrec/*.cpp)
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/api/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/ccmain/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/ccstruct/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/ccutil/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/classify/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/cube/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/cutil/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/dict/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/opencl/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/neural_networks/runtime/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/textord/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/viewer/*.cpp) \
+  $(wildcard $(LOCAL_PATH)/$(TESSERACT_PATH)/wordrec/*.cpp)
 
 LOCAL_SRC_FILES := \
   $(filter-out $(BLACKLIST_SRC_FILES),$(subst $(LOCAL_PATH)/,,$(TESSERACT_SRC_FILES)))
 
 LOCAL_C_INCLUDES := \
-  $(TESSERACT_PATH)/api \
-  $(TESSERACT_PATH)/ccmain \
-  $(TESSERACT_PATH)/ccstruct \
-  $(TESSERACT_PATH)/ccutil \
-  $(TESSERACT_PATH)/classify \
-  $(TESSERACT_PATH)/cube \
-  $(TESSERACT_PATH)/cutil \
-  $(TESSERACT_PATH)/dict \
-  $(TESSERACT_PATH)/opencl \
-  $(TESSERACT_PATH)/neural_networks/runtime \
-  $(TESSERACT_PATH)/textord \
-  $(TESSERACT_PATH)/viewer \
-  $(TESSERACT_PATH)/wordrec \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/api \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/ccmain \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/ccstruct \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/ccutil \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/classify \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/cube \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/cutil \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/dict \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/opencl \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/neural_networks/runtime \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/textord \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/viewer \
+  $(LOCAL_PATH)/$(TESSERACT_PATH)/wordrec \
   $(LEPTONICA_PATH)/src
 
 LOCAL_CFLAGS := \
@@ -75,6 +75,9 @@ LOCAL_C_INCLUDES += \
 LOCAL_LDLIBS += \
   -ljnigraphics \
   -llog
+
+LOCAL_CFLAGS += -fopenmp
+LOCAL_LDFLAGS += -fopenmp
 
 # common
 

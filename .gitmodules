@@ -1,0 +1,3 @@
+[submodule "doo-tesseract"]
+	path = doo-tesseract
+	url = https://github.com/doo/doo-tesseract.git

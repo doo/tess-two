@@ -47,19 +47,19 @@ jintArray Java_com_googlecode_tesseract_android_PageIterator_nativeBoundingBox(J
   jintArray result = env->NewIntArray(size);
 
   LOG_ASSERT((result != NULL), "Could not create Java bounding box array!");
-  
+
   PageIterator *pageIterator = (PageIterator *) nativePageIterator;
   PageIteratorLevel enumLevel = (PageIteratorLevel) level;
   int x1, y1, x2, y2;
   pageIterator->BoundingBox(enumLevel, &x1, &y1, &x2, &y2);
-  
+
   // fill a temp structure to use to populate the java int array
   jint fill[6];
   fill[0] = x1;
   fill[1] = y1;
   fill[2] = x2;
   fill[3] = y2;
- 
+
   env->SetIntArrayRegion(result, 0, size, fill);
   return result;
 }
