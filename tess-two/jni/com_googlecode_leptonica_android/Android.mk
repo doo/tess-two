@@ -33,7 +33,7 @@ LOCAL_SRC_FILES += \
   readfile.cpp \
   writefile.cpp \
   jni.cpp
-  
+
 LOCAL_C_INCLUDES += \
   $(LOCAL_PATH) \
   $(LIBJPEG_PATH) \
@@ -44,8 +44,12 @@ LOCAL_LDLIBS += \
   -llog
 
 # common
+ifeq ($(TARGET_ARCH_ABI), x86)
+LOCAL_STATIC_LIBRARIES:= libjpgt
+else
+LOCAL_STATIC_LIBRARIES := libjpeg
+endif
 
 LOCAL_PRELINK_MODULE:= false
-LOCAL_STATIC_LIBRARIES := libjpeg
 
 include $(BUILD_SHARED_LIBRARY)
