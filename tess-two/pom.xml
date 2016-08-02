@@ -84,7 +84,7 @@
                         </goals>
                         <configuration>
                             <target>all</target>
-                            <ndkArchitecture>armeabi armeabi-v7a</ndkArchitecture>
+                            <ndkArchitecture>armeabi armeabi-v7a x86</ndkArchitecture>
                         </configuration>
                     </execution>
                 </executions>
