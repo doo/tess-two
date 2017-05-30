@@ -1,7 +1,7 @@
 ROOT_PATH := $(call my-dir)
 LOCAL_PATH := $(call my-dir)
 
-TESSERACT_PATH := ../../../doo-tesseract
+TESSERACT_PATH := $(LOCAL_PATH)/../../doo-tesseract
 LEPTONICA_PATH := $(LOCAL_PATH)/com_googlecode_leptonica_android/src
 
 ifeq ($(TARGET_ARCH_ABI), x86)
