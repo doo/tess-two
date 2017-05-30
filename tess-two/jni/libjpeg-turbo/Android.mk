@@ -55,7 +55,7 @@ libjpeg_SOURCES_DIST =  jcapimin.c jcapistd.c jccoefct.c jccolor.c \
 
 LOCAL_SRC_FILES:= $(libjpeg_SOURCES_DIST)
  
-LOCAL_SHARED_LIBRARIES := libcutils
+#LOCAL_SHARED_LIBRARIES := libcutils
 LOCAL_STATIC_LIBRARIES := libsimd
  
 LOCAL_C_INCLUDES := $(LOCAL_PATH) 
