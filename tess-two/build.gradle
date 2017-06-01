@@ -1,0 +1,77 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.2'
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'maven'
+
+def publishGroupId = 'io.scanbot'
+def publishArtifactId = 'tess-two'
+def publishVersionName = "1.1.1-SNAPSHOT"
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.3"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 25
+        versionCode 1
+        versionName publishVersionName
+
+        externalNativeBuild {
+            ndkBuild {
+                abiFilters 'armeabi', 'armeabi-v7a', 'x86'
+                arguments '-j16'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path "jni/Android.mk"
+        }
+    }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            snapshotRepository(url: "http://nexus.scanbot.io/nexus/content/repositories/snapshots/") {
+                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
+            }
+            repository(url: "http://nexus.scanbot.io/nexus/content/repositories/releases/") {
+                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
+            }
+
+            pom.version = publishVersionName
+            pom.artifactId = publishArtifactId
+            pom.groupId = publishGroupId
+        }
+    }
+}
