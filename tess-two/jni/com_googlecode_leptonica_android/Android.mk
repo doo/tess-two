@@ -47,7 +47,7 @@ LOCAL_LDLIBS += \
 ifeq ($(TARGET_ARCH_ABI), x86)
 LOCAL_STATIC_LIBRARIES:= libjpgt
 else
-LOCAL_STATIC_LIBRARIES := libjpeg
+LOCAL_STATIC_LIBRARIES := libjpegturbo
 endif
 
 LOCAL_PRELINK_MODULE:= false
