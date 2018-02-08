@@ -625,7 +625,7 @@ jlong Java_com_googlecode_tesseract_android_TessPdfRenderer_nativeCreate(JNIEnv 
   native_data_t *nat = (native_data_t*) jTessBaseApi;
   const char *c_output_path = env->GetStringUTFChars(outputPath, NULL);
 
-  tesseract::TessPDFRenderer* result = new tesseract::TessPDFRenderer(c_output_path, nat->api.GetDatapath());
+  tesseract::TessPDFRenderer* result = new tesseract::TessPDFRenderer(c_output_path, nat->api.GetDatapath(), false);
 
   env->ReleaseStringUTFChars(outputPath, c_output_path);
 
