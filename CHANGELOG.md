@@ -1,7 +1,27 @@
 # Change Log
 
 ## [Unreleased](https://github.com/rmtheis/tess-two/tree/HEAD)
-[Full Changelog](https://github.com/rmtheis/tess-two/compare/8.0.0...HEAD)
+[Full Changelog](https://github.com/rmtheis/tess-two/compare/9.0.0...HEAD)
+
+## [9.0.0](https://github.com/rmtheis/tess-two/tree/9.0.0) (2018-04-20)
+[Full Changelog](https://github.com/rmtheis/tess-two/compare/8.0.0...9.0.0)
+
+**Change:**
+
+- This version fixes and adds back in the 64-bit ABIs, and removes the deprecated armv5 and mips/mips64 ABIs.
+
+**Implemented enhancements:**
+
+- Improve developer support for Hindi/Arabic [\#240](https://github.com/rmtheis/tess-two/issues/240)
+
+**Fixed bugs:**
+
+- Crashing reported on 64-bit devices [\#197](https://github.com/rmtheis/tess-two/issues/197)
+
+**Merged pull requests:**
+
+- Updated repositories. Changed compile to implementation. [\#233](https://github.com/rmtheis/tess-two/pull/233) ([mauriciotogneri](https://github.com/mauriciotogneri))
+- Updated version of SDK, build tools and support libraries [\#231](https://github.com/rmtheis/tess-two/pull/231) ([mauriciotogneri](https://github.com/mauriciotogneri))
 
 ## [8.0.0](https://github.com/rmtheis/tess-two/tree/8.0.0) (2017-08-13)
 [Full Changelog](https://github.com/rmtheis/tess-two/compare/7.0.0...8.0.0)
