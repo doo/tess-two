@@ -3,7 +3,7 @@ apply plugin: 'maven'
 
 def publishGroupId = 'io.scanbot'
 def publishArtifactId = 'tess-two'
-def publishVersionName = "2.0.0"
+def publishVersionName = "2.0.1.1-SNAPSHOT"
 
 android {
     compileSdkVersion project.ext.compileSdkVersion
@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 25
+        targetSdkVersion 26
         versionCode 1
         versionName publishVersionName
         consumerProguardFiles 'proguard-rules.pro'
