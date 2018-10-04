@@ -31,8 +31,8 @@ import java.io.IOException;
 @SuppressWarnings("WeakerAccess")
 public class JpegIO {
     static {
-        System.loadLibrary("jpgt");
-        System.loadLibrary("pngt");
+        //System.loadLibrary("jpgt");
+        //System.loadLibrary("pngt");
         System.loadLibrary("lept");
     }
 

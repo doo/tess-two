@@ -28,8 +28,8 @@ import android.graphics.PointF;
  */
 public class OpticalFlow {
     static {
-        System.loadLibrary("jpgt");
-        System.loadLibrary("pngt");
+        //System.loadLibrary("jpgt");
+        //System.loadLibrary("pngt");
         System.loadLibrary("lept");
         System.loadLibrary("opticalflow");
     }
