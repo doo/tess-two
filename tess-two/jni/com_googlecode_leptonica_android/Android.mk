@@ -45,8 +45,9 @@ LOCAL_LDLIBS += \
   -ljnigraphics \
   -llog
 
+# NOTE: Disable image loading libraries because Tesseract is always fed raw images and never image files
 # common
-LOCAL_SHARED_LIBRARIES += libjpgt libpngt
+# LOCAL_SHARED_LIBRARIES += libjpgt libpngt
 
 LOCAL_PRELINK_MODULE:= false
 
