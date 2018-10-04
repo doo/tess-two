@@ -7,7 +7,7 @@ def publishVersionName = "2.0.4"
 
 android {
     compileSdkVersion project.ext.compileSdkVersion
-    buildToolsVersion '28.0.2'
+    buildToolsVersion project.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion 15
