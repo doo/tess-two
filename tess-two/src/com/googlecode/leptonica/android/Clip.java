@@ -20,8 +20,7 @@ package com.googlecode.leptonica.android;
  */
 public class Clip {
     static {
-        System.loadLibrary("jpgt");
-        System.loadLibrary("pngt");
+
         System.loadLibrary("lept");
     }
 
