@@ -28,8 +28,7 @@ import android.support.annotation.Size;
 @SuppressWarnings("WeakerAccess")
 public class Pix {
     static {
-        //System.loadLibrary("jpgt");
-        //System.loadLibrary("pngt");
+
         System.loadLibrary("lept");
     }
 

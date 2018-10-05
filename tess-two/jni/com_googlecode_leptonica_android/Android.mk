@@ -37,17 +37,11 @@ LOCAL_SRC_FILES += \
   
 LOCAL_C_INCLUDES += \
   $(LOCAL_PATH) \
-  $(LEPTONICA_PATH)/src \
-  $(LIBJPEG_PATH) \
-  $(LIBPNG_PATH)
+  $(LEPTONICA_PATH)/src
 
 LOCAL_LDLIBS += \
   -ljnigraphics \
   -llog
-
-# NOTE: Disable image loading libraries because Tesseract is always fed raw images and never image files
-# common
-# LOCAL_SHARED_LIBRARIES += libjpgt libpngt
 
 LOCAL_PRELINK_MODULE:= false
 

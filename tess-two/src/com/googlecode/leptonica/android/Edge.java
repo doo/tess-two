@@ -28,8 +28,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 @SuppressWarnings("WeakerAccess")
 public class Edge {
     static {
-        //System.loadLibrary("jpgt");
-        //System.loadLibrary("pngt");
+
         System.loadLibrary("lept");
     }
 

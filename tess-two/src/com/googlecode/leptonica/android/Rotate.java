@@ -24,8 +24,7 @@ import android.support.annotation.IntRange;
 @SuppressWarnings("WeakerAccess")
 public class Rotate {
     static {
-        //System.loadLibrary("jpgt");
-        //System.loadLibrary("pngt");
+
         System.loadLibrary("lept");
     }
 
