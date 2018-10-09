@@ -26,6 +26,8 @@ public class AdaptiveMap {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
+
     }
 
     // Background normalization constants

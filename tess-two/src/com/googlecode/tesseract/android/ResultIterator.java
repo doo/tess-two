@@ -36,6 +36,7 @@ public class ResultIterator extends PageIterator {
 
         System.loadLibrary("lept");
         System.loadLibrary("tess");
+        System.loadLibrary("jpgt");
     }
 
     /** Pointer to native result iterator. */

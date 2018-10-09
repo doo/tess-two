@@ -33,6 +33,7 @@ public class JpegIO {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     /** Default quality is 85%, which is reasonably good. */

@@ -30,6 +30,7 @@ public class Boxa {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     private static final String TAG = Boxa.class.getSimpleName();

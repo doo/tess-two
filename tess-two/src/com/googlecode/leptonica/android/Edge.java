@@ -30,6 +30,7 @@ public class Edge {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Edge orientation flags

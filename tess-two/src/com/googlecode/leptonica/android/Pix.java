@@ -30,6 +30,7 @@ public class Pix {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     /** Index of the image width within the dimensions array. */

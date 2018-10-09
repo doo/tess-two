@@ -28,6 +28,7 @@ public class Binarize {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Otsu thresholding constants

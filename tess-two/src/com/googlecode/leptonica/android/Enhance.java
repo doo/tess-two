@@ -26,6 +26,7 @@ public class Enhance {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Unsharp masking constants

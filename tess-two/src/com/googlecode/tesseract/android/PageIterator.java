@@ -25,6 +25,7 @@ public class PageIterator {
 
         System.loadLibrary("lept");
         System.loadLibrary("tess");
+        System.loadLibrary("jpgt");
     }
 
     /** Pointer to native page iterator. */

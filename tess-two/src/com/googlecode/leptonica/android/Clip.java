@@ -22,6 +22,7 @@ public class Clip {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     /**
