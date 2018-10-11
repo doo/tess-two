@@ -35,6 +35,7 @@ public class Pixa implements Iterable<Pix> {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     private static final String TAG = Pixa.class.getSimpleName();

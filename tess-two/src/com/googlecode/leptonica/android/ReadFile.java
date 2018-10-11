@@ -31,6 +31,7 @@ public class ReadFile {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     private static final String LOG_TAG = ReadFile.class.getSimpleName();

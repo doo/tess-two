@@ -26,6 +26,7 @@ public class Skew {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Text alignment defaults

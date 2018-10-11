@@ -25,6 +25,7 @@ public class Scale {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     public enum ScaleType {

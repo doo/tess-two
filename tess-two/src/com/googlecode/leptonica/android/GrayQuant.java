@@ -20,6 +20,7 @@ public class GrayQuant {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     /**

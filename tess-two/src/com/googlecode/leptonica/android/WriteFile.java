@@ -28,6 +28,7 @@ public class WriteFile {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     /**

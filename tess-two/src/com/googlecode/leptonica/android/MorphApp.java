@@ -30,6 +30,7 @@ public class MorphApp {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Morphological tophat flags

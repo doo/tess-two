@@ -26,6 +26,7 @@ public class Rotate {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
 
     // Rotation default

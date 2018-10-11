@@ -25,6 +25,7 @@ public class Convert {
     static {
 
         System.loadLibrary("lept");
+        System.loadLibrary("jpgt");
     }
     
     /**

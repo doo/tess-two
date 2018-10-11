@@ -23,6 +23,7 @@ import com.googlecode.leptonica.android.Pix;
  */
 public class Thresholder {
     static {
+        System.loadLibrary("jpgt");
 
         System.loadLibrary("lept");
         System.loadLibrary("hydrogen");

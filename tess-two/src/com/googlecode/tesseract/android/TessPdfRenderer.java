@@ -30,6 +30,7 @@ public class TessPdfRenderer {
 
         System.loadLibrary("lept");
         System.loadLibrary("tess");
+        System.loadLibrary("jpgt");
     }
 
     private boolean mRecycled;
