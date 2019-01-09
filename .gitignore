@@ -34,3 +34,12 @@ build/
 *.iml
 javadoc/
 tessdata/
+
+.externalNativeBuild/
+obj
+gen
+libs
+jni/com_googlecode_tesseract_android/src/config/**
+jni/com_googlecode_tesseract_android/src/m4/**
+jni/com_googlecode_tesseract_android/src/vs2008/**
+jni/com_googlecode_tesseract_android/src/vs2010/**
