@@ -1,5 +1,5 @@
-[submodule "tess-two/jni/tesseract"]
+[submodule "jni/tesseract"]
 	path = jni/tesseract
-	url = https://github.com/doo/tesseract.git
+	url = git@github.com:doo/tesseract.git
 	branch = tesseract-android
 
