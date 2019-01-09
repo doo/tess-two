@@ -124,10 +124,11 @@ ImageData::ImageData() : page_number_(-1), vertical_text_(false) {
 }
 // Takes ownership of the pix and destroys it.
 ImageData::ImageData(bool vertical, Pix* pix)
-  : page_number_(0), vertical_text_(vertical) {
+  : page_number_(0), vertical_text_(vertical), image_data_(NULL) {
   SetPix(pix);
 }
 ImageData::~ImageData() {
+    SetPix(NULL);
 }
 
 // Builds and returns an ImageData from the basic data. Note that imagedata,
@@ -212,6 +213,9 @@ bool ImageData::SkipDeSerialize(TFile* fp) {
 
 // Saves the given Pix as a PNG-encoded string and destroys it.
 void ImageData::SetPix(Pix* pix) {
+    if (image_data_) {
+        pixDestroy(&image_data_);
+    }
   image_data_ = pix;
 //  SetPixInternal(pix, &image_data_);
 }
