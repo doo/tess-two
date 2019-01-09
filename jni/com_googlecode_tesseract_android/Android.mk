@@ -24,10 +24,6 @@ TESSERACT_SRC_FILES := \
   $(wildcard $(TESSERACT_PATH)/viewer/*.cpp) \
   $(wildcard $(TESSERACT_PATH)/wordrec/*.cpp)
 
-  # $(wildcard $(TESSERACT_PATH)/cube/*.cpp) \
-  # $(wildcard $(TESSERACT_PATH)/neural_networks/runtime/*.cpp) \
-  # $(wildcard $(TESSERACT_PATH)/opencl/*.cpp) \
-
 LOCAL_SRC_FILES := \
   $(filter-out $(BLACKLIST_SRC_FILES),$(subst $(LOCAL_PATH)/,,$(TESSERACT_SRC_FILES)))
 
@@ -47,9 +43,6 @@ LOCAL_C_INCLUDES := \
   $(TESSERACT_PATH)/wordrec \
   $(LEPTONICA_PATH)/src
 
-  # $(TESSERACT_PATH)/cube \
-  # $(TESSERACT_PATH)/neural_networks/runtime \
-
 LOCAL_CFLAGS := \
   -DGRAPHICS_DISABLED \
   --std=c++11 \
@@ -62,12 +55,18 @@ LOCAL_CFLAGS := \
   -Wno-shift-negative-value \
   -D_GLIBCXX_PERMIT_BACKWARD_HASH   # fix for android-ndk-r8e/sources/cxx-stl/gnu-libstdc++/4.6/include/ext/hash_map:61:30: fatal error: backward_warning.h: No such file or directory
 
-ifeq ($(NDK_DEBUG),1)
-  LOCAL_CFLAGS += -g -O0 -UNDEBUG
+ifeq ($(APP_OPTIM),debug)
+  LOCAL_CFLAGS += -O0 -UNDEBUG
   $(info Tesseract: Debug build)
 else
   LOCAL_CFLAGS += -O3 -DNDEBUG
   $(info Tesseract: Release build)
+endif
+
+ifneq ($(findstring arm,$(TARGET_ARCH)),)
+  $(info Tesseract: using NEON instructions)
+  LOCAL_ARM_NEON := true
+  LOCAL_CFLAGS += -D__ARM_NEON__
 endif
 
 # jni
