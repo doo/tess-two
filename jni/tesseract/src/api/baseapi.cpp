@@ -205,13 +205,12 @@ TessBaseAPI::TessBaseAPI()
       image_width_(0),
       image_height_(0) {
   const char *locale;
-
   locale = std::setlocale(LC_ALL, nullptr);
-  ASSERT_HOST(!strcmp(locale, "C"));
+  ASSERT_HOST(!strcmp(locale, "C") || !strncmp(locale, "C.", 2));
   locale = std::setlocale(LC_CTYPE, nullptr);
-  ASSERT_HOST(!strcmp(locale, "C"));
+  ASSERT_HOST(!strcmp(locale, "C") || !strncmp(locale, "C.", 2));
   locale = std::setlocale(LC_NUMERIC, nullptr);
-  ASSERT_HOST(!strcmp(locale, "C"));
+  ASSERT_HOST(!strcmp(locale, "C") || !strncmp(locale, "C.", 2));
 }
 
 TessBaseAPI::~TessBaseAPI() {
