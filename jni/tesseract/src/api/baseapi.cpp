@@ -204,16 +204,14 @@ TessBaseAPI::TessBaseAPI()
       rect_height_(0),
       image_width_(0),
       image_height_(0) {
-//  const char *locale;
-//  locale = std::setlocale(LC_ALL, nullptr);
-//  ASSERT_HOST(!strcmp(locale, "C"));
-//  locale = std::setlocale(LC_CTYPE, nullptr);
-//  ASSERT_HOST(!strcmp(locale, "C"));
-//  locale = std::setlocale(LC_NUMERIC, nullptr);
-//  ASSERT_HOST(!strcmp(locale, "C"));
+  const char *locale;
 
-    fprintf(stderr, "actual proper version tesseract");
-    ASSERT_HOST(true);
+  locale = std::setlocale(LC_ALL, nullptr);
+  ASSERT_HOST(!strcmp(locale, "C"));
+  locale = std::setlocale(LC_CTYPE, nullptr);
+  ASSERT_HOST(!strcmp(locale, "C"));
+  locale = std::setlocale(LC_NUMERIC, nullptr);
+  ASSERT_HOST(!strcmp(locale, "C"));
 }
 
 TessBaseAPI::~TessBaseAPI() {
