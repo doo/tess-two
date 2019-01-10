@@ -57,19 +57,20 @@ dependencies {
     api 'androidx.annotation:annotation:1.0.0'
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            snapshotRepository(url: "http://nexus.scanbot.io/nexus/content/repositories/snapshots/") {
-                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
-            }
-            repository(url: "http://nexus.scanbot.io/nexus/content/repositories/releases/") {
-                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
-            }
-
-            pom.version = publishVersionName
-            pom.artifactId = publishArtifactId
-            pom.groupId = publishGroupId
-        }
-    }
-}
+//// Uncomment only when uploading new version
+//uploadArchives {
+//    repositories {
+//        mavenDeployer {
+//            snapshotRepository(url: "http://nexus.scanbot.io/nexus/content/repositories/snapshots/") {
+//                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
+//            }
+//            repository(url: "http://nexus.scanbot.io/nexus/content/repositories/releases/") {
+//                authentication(userName: project.getProperty('NEXUS_LOGIN'), password: project.getProperty('NEXUS_PASSWORD'))
+//            }
+//
+//            pom.version = publishVersionName
+//            pom.artifactId = publishArtifactId
+//            pom.groupId = publishGroupId
+//        }
+//    }
+//}
