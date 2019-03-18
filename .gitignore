@@ -23,7 +23,6 @@ Makefile.in
 Makefile
 config.status
 *.m4
-config_auto.h
 configure
 libtool
 tesseract.pc
