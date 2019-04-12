@@ -23,7 +23,6 @@ Makefile.in
 Makefile
 config.status
 *.m4
-config_auto.h
 configure
 libtool
 tesseract.pc
@@ -34,3 +33,9 @@ build/
 *.iml
 javadoc/
 tessdata/
+
+.externalNativeBuild/
+jni/com_googlecode_tesseract_android/src/config/**
+jni/com_googlecode_tesseract_android/src/m4/**
+jni/com_googlecode_tesseract_android/src/vs2008/**
+jni/com_googlecode_tesseract_android/src/vs2010/**
