@@ -1,17 +1,58 @@
+buildscript {
+
+    repositories {
+        google()
+        jcenter()
+        maven {
+            url 'http://nexus.scanbot.io/nexus/content/repositories/snapshots/'
+        }
+        maven {
+            url 'http://nexus.scanbot.io/nexus/content/repositories/releases/'
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.2.1'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        mavenCentral()
+
+        maven {
+            url 'http://nexus.scanbot.io/nexus/content/repositories/releases/'
+        }
+        maven {
+            url 'http://nexus.scanbot.io/nexus/content/repositories/snapshots/'
+        }
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/releases/'
+        }
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        }
+        maven {
+            url "https://s3.amazonaws.com/repo.commonsware.com"
+        }
+    }
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'maven'
 
 def publishGroupId = 'io.scanbot'
 def publishArtifactId = 'tess-two'
-def publishVersionName = "3.0.3"
+def publishVersionName = "3.0.4"
 
 android {
-    compileSdkVersion compile_sdk_version
-    buildToolsVersion buildToolsVersion
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 26
+        targetSdkVersion 28
         versionCode 1
         versionName publishVersionName
         consumerProguardFiles 'proguard-rules.pro'
