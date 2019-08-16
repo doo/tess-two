@@ -44,7 +44,7 @@ apply plugin: 'maven'
 
 def publishGroupId = 'io.scanbot'
 def publishArtifactId = 'tess-two'
-def publishVersionName = "3.0.4"
+def publishVersionName = "3.0.5"
 
 android {
     compileSdkVersion 28
