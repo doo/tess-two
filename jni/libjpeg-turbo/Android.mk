@@ -194,6 +194,7 @@ LOCAL_CFLAGS += \
 	-DNEED_SYS_TYPES_H=1 \
 	-DSTDC_HEADERS=1 \
 	-DWITH_SIMD=1 \
+	-Wno-shift-negative-value -Wno-implicit-function-declaration
 
 LOCAL_EXPORT_CFLAGS += \
   	-DC_ARITH_CODING_SUPPORTED=1 \
