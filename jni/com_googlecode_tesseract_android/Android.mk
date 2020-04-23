@@ -4,11 +4,13 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libtess
 
-# tesseract (minus executable)
+# tesseract (minus executable and x86 optimizations)
 
 BLACKLIST_SRC_FILES := \
   %api/tesseractmain.cpp \
-  %viewer/svpaint.cpp
+  %viewer/svpaint.cpp \
+  $(wildcard $(TESSERACT_PATH)/arch/*avx*.cpp) \
+  $(wildcard $(TESSERACT_PATH)/arch/*sse.cpp)
 
 TESSERACT_SRC_FILES := \
   $(wildcard $(TESSERACT_PATH)/api/*.cpp) \
@@ -28,6 +30,7 @@ LOCAL_SRC_FILES := \
   $(filter-out $(BLACKLIST_SRC_FILES),$(subst $(LOCAL_PATH)/,,$(TESSERACT_SRC_FILES)))
 
 LOCAL_C_INCLUDES := \
+  $(TESSERACT_PATH)/../../config \
   $(TESSERACT_PATH)/api \
   $(TESSERACT_PATH)/arch \
   $(TESSERACT_PATH)/ccmain \
@@ -45,15 +48,11 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := \
   -DGRAPHICS_DISABLED \
-  --std=c++11 \
-  -DUSE_STD_NAMESPACE \
-  -D'VERSION="Android"' \
-  -include ctype.h \
-  -include unistd.h \
+  -std=c++11 \
+  -include glue.h \
   -fpermissive \
-  -Wno-deprecated \
-  -Wno-shift-negative-value \
-  -D_GLIBCXX_PERMIT_BACKWARD_HASH   # fix for android-ndk-r8e/sources/cxx-stl/gnu-libstdc++/4.6/include/ext/hash_map:61:30: fatal error: backward_warning.h: No such file or directory
+  -Wno-deprecated
+
 
 ifeq ($(APP_OPTIM),debug)
   LOCAL_CFLAGS += -O0 -UNDEBUG
