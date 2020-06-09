@@ -19,7 +19,7 @@ package com.googlecode.leptonica.android;
 import android.graphics.Rect;
 import android.util.Log;
 
-import androidx.annotation.Size;
+import android.support.annotation.Size;
 
 /**
  * Wrapper for Leptonica's native BOX.

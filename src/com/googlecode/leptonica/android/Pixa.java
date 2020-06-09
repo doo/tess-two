@@ -23,7 +23,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import androidx.annotation.Size;
+import android.support.annotation.Size;
 
 /**
  * Java representation of a native PIXA object. This object contains multiple

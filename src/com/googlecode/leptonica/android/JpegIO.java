@@ -19,10 +19,11 @@ package com.googlecode.leptonica.android;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import androidx.annotation.IntRange;
+import android.support.annotation.IntRange;
 
 /**
  * JPEG input and output methods.

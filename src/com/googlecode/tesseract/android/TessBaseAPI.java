@@ -27,8 +27,7 @@ import com.googlecode.leptonica.android.ReadFile;
 import java.io.File;
 import java.lang.annotation.Retention;
 
-import androidx.annotation.IntDef;
-import androidx.annotation.WorkerThread;
+import android.support.annotation.IntDef;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
@@ -501,7 +500,6 @@ public class TessBaseAPI {
      *
      * @param file absolute path to the image file
      */
-    @WorkerThread
     public void setImage(File file) {
         if (mRecycled)
             throw new IllegalStateException();
@@ -526,7 +524,6 @@ public class TessBaseAPI {
      *
      * @param bmp bitmap representation of the image
      */
-    @WorkerThread
     public void setImage(Bitmap bmp) {
         if (mRecycled)
             throw new IllegalStateException();
@@ -549,7 +546,6 @@ public class TessBaseAPI {
      *
      * @param image Leptonica pix representation of the image
      */
-    @WorkerThread
     public void setImage(Pix image) {
         if (mRecycled)
             throw new IllegalStateException();
@@ -570,7 +566,6 @@ public class TessBaseAPI {
      * @param bpp bytes per pixel
      * @param bpl bytes per line
      */
-    @WorkerThread
     public void setImage(byte[] imagedata, int width, int height, int bpp, int bpl) {
         if (mRecycled)
             throw new IllegalStateException();
@@ -586,7 +581,6 @@ public class TessBaseAPI {
      *
      * @return the recognized text
      */
-    @WorkerThread
     public String getUTF8Text() {
         if (mRecycled)
             throw new IllegalStateException();
@@ -746,7 +740,6 @@ public class TessBaseAPI {
      * @param page is 0-based but will appear in the output as 1-based. 
      * @return HTML-formatted string with hOCR markup
      */
-    @WorkerThread
     public String getHOCRText(int page){
         if (mRecycled)
             throw new IllegalStateException();
