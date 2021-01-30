@@ -106,6 +106,8 @@ static L_COMP_DATA  *l_generateJp2kData(const char *fname);
 static L_COMP_DATA  *pixGenerateFlateData(PIX *pixs, l_int32 ascii85flag);
 static L_COMP_DATA  *pixGenerateJpegData(PIX *pixs, l_int32 ascii85flag,
                                          l_int32 quality);
+static L_COMP_DATA  *pixGenerateJpegBufferData(PIX *pixs, l_int32 ascii85flag,
+                                         l_int32 quality);
 static L_COMP_DATA  *pixGenerateG4Data(PIX *pixs, l_int32 ascii85flag);
 
 static l_int32       l_generatePdf(l_uint8 **pdata, size_t *pnbytes,
