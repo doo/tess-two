@@ -38,6 +38,10 @@
  *          l_int32          fgetJpegResolution()
  *          l_int32          fgetJpegComment()
  *
+ *    Read jpeg metadata from memory
+ *          l_int32          readHeaderJpegBuffer()
+ *          l_int32          getJpegBufferResolution()
+ *
  *    Write jpeg to file
  *          l_int32          pixWriteJpeg()  [special top level]
  *          l_int32          pixWriteStreamJpeg()
@@ -46,6 +50,8 @@
  *          PIX             *pixReadMemJpeg()
  *          l_int32          readHeaderMemJpeg()
  *          l_int32          pixWriteMemJpeg()
+ *          l_int32          pixWriteJpegBuffer()
+ *          l_int32          pixReadJpegBuffer()
  *
  *    Setting special flag for chroma sampling on write
  *          l_int32          pixSetChromaSampling()
@@ -487,6 +493,244 @@ jmp_buf                        jmpbuf;  /* must be local to the function */
     return pix;
 }
 
+/*!
+ * \brief   pixReadJpegBuffer()
+ *
+ * \param[in]    data const; jpeg-encoded
+ * \param[in]    size of data
+ * \param[in]    cmapflag 0 for no colormap in returned pix;
+ *                        1 to return an 8 bpp cmapped pix if spp = 3 or 4
+ * \param[in]    reduction scaling factor: 1, 2, 4 or 8
+ * \param[out]   pnwarn [optional] number of warnings
+ * \param[in]    hint a bitwise OR of L_JPEG_* values; 0 for default
+ * \return  pix, or NULL on error
+ *
+ *  Usage: see pixReadJpeg
+ * <pre>
+ * Notes:
+ *      (1) The jpeg comment, if it exists, is not stored in the pix.
+ * </pre>
+ */
+PIX *
+pixReadJpegBuffer(const unsigned char * inbuffer,
+                  unsigned long insize,
+                  l_int32   cmapflag,
+                  l_int32   reduction,
+                  l_int32  *pnwarn,
+                  l_int32   hint)
+{
+    l_int32                        cyan, yellow, magenta, black, nwarn;
+    l_int32                        i, j, k, rval, gval, bval;
+    l_int32                        w, h, wpl, spp, ncolors, cindex, ycck, cmyk;
+    l_uint32                      *data;
+    l_uint32                      *line, *ppixel;
+    JSAMPROW                       rowbuffer;
+    PIX                           *pix;
+    PIXCMAP                       *cmap;
+    struct jpeg_decompress_struct  cinfo;
+    struct jpeg_error_mgr          jerr;
+    jmp_buf                        jmpbuf;  /* must be local to the function */
+
+    PROCNAME("pixReadBufferJpeg");
+
+    if (pnwarn) *pnwarn = 0;
+    if (cmapflag != 0 && cmapflag != 1)
+        cmapflag = 0;  /* default */
+    if (reduction != 1 && reduction != 2 && reduction != 4 && reduction != 8)
+        return (PIX *)ERROR_PTR("reduction not in {1,2,4,8}", procName, NULL);
+
+    if (BITS_IN_JSAMPLE != 8)  /* set in jmorecfg.h */
+        return (PIX *)ERROR_PTR("BITS_IN_JSAMPLE != 8", procName, NULL);
+
+    pix = NULL;
+    rowbuffer = NULL;
+
+    /* Modify the jpeg error handling to catch fatal errors  */
+    cinfo.err = jpeg_std_error(&jerr);
+    jerr.error_exit = jpeg_error_catch_all_1;
+    cinfo.client_data = (void *)&jmpbuf;
+    if (setjmp(jmpbuf)) {
+        pixDestroy(&pix);
+        LEPT_FREE(rowbuffer);
+        return (PIX *)ERROR_PTR("internal jpeg error", procName, NULL);
+    }
+
+    /* Initialize jpeg structs for decompression */
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, inbuffer, insize);
+    jpeg_read_header(&cinfo, TRUE);
+    cinfo.scale_denom = reduction;
+    cinfo.scale_num = 1;
+    jpeg_calc_output_dimensions(&cinfo);
+    if (hint & L_JPEG_READ_LUMINANCE) {
+        cinfo.out_color_space = JCS_GRAYSCALE;
+        spp = 1;
+        L_INFO("reading luminance channel only\n", procName);
+    } else {
+        spp = cinfo.out_color_components;
+    }
+
+    /* Allocate the image and a row buffer */
+    w = cinfo.output_width;
+    h = cinfo.output_height;
+    ycck = (cinfo.jpeg_color_space == JCS_YCCK && spp == 4 && cmapflag == 0);
+    cmyk = (cinfo.jpeg_color_space == JCS_CMYK && spp == 4 && cmapflag == 0);
+    if (spp != 1 && spp != 3 && !ycck && !cmyk) {
+        return (PIX *)ERROR_PTR("spp must be 1 or 3, or YCCK or CMYK",
+                                procName, NULL);
+    }
+    if ((spp == 3 && cmapflag == 0) || ycck || cmyk) {  /* rgb or 4 bpp color */
+        rowbuffer = (JSAMPROW)LEPT_CALLOC(sizeof(JSAMPLE), spp * w);
+        pix = pixCreate(w, h, 32);
+    } else {  /* 8 bpp gray or colormapped */
+        rowbuffer = (JSAMPROW)LEPT_CALLOC(sizeof(JSAMPLE), w);
+        pix = pixCreate(w, h, 8);
+    }
+    pixSetInputFormat(pix, IFF_JFIF_JPEG);
+    if (!rowbuffer || !pix) {
+        LEPT_FREE(rowbuffer);
+        pixDestroy(&pix);
+        return (PIX *)ERROR_PTR("rowbuffer or pix not made", procName, NULL);
+    }
+
+    /* Initialize decompression.  Set up a colormap for color
+     * quantization if requested. */
+    if (spp == 1) {  /* Grayscale or colormapped */
+        jpeg_start_decompress(&cinfo);
+    } else {        /* Color; spp == 3 or YCCK or CMYK */
+        if (cmapflag == 0) {   /* 24 bit color in 32 bit pix or YCCK/CMYK */
+            cinfo.quantize_colors = FALSE;
+            jpeg_start_decompress(&cinfo);
+        } else {      /* Color quantize to 8 bits */
+            cinfo.quantize_colors = TRUE;
+            cinfo.desired_number_of_colors = 256;
+            jpeg_start_decompress(&cinfo);
+
+            /* Construct a pix cmap */
+            cmap = pixcmapCreate(8);
+            ncolors = cinfo.actual_number_of_colors;
+            for (cindex = 0; cindex < ncolors; cindex++) {
+                rval = cinfo.colormap[0][cindex];
+                gval = cinfo.colormap[1][cindex];
+                bval = cinfo.colormap[2][cindex];
+                pixcmapAddColor(cmap, rval, gval, bval);
+            }
+            pixSetColormap(pix, cmap);
+        }
+    }
+    wpl  = pixGetWpl(pix);
+    data = pixGetData(pix);
+
+    /* Decompress.  Unfortunately, we cannot use the return value
+     * from jpeg_read_scanlines() to determine if there was a problem
+     * with the data; it always appears to return 1.  We can only
+     * tell from the warnings during decoding, such as "premature
+     * end of data segment".  The default behavior is to return an
+     * image even if there are warnings.  However, by setting the
+     * hint to have the same bit flag as L_JPEG_FAIL_ON_BAD_DATA,
+     * no image will be returned if there are any warnings. */
+    for (i = 0; i < h; i++) {
+        if (jpeg_read_scanlines(&cinfo, &rowbuffer, (JDIMENSION)1) == 0) {
+            L_ERROR("read error at scanline %d\n", procName, i);
+            pixDestroy(&pix);
+            jpeg_destroy_decompress(&cinfo);
+            LEPT_FREE(rowbuffer);
+            return (PIX *)ERROR_PTR("bad data", procName, NULL);
+        }
+
+        /* -- 24 bit color -- */
+        if ((spp == 3 && cmapflag == 0) || ycck || cmyk) {
+            ppixel = data + i * wpl;
+            if (spp == 3) {
+                for (j = k = 0; j < w; j++) {
+                    SET_DATA_BYTE(ppixel, COLOR_RED, rowbuffer[k++]);
+                    SET_DATA_BYTE(ppixel, COLOR_GREEN, rowbuffer[k++]);
+                    SET_DATA_BYTE(ppixel, COLOR_BLUE, rowbuffer[k++]);
+                    ppixel++;
+                }
+            } else {
+                /* This is a conversion from CMYK -> RGB that ignores
+                   color profiles, and is invoked when the image header
+                   claims to be in CMYK or YCCK colorspace.  If in YCCK,
+                   libjpeg may be doing YCCK -> CMYK under the hood.
+                   To understand why the colors need to be inverted on
+                   read-in for the Adobe marker, see the "Special
+                   color spaces" section of "Using the IJG JPEG
+                   Library" by Thomas G. Lane:
+                     http://www.jpegcameras.com/libjpeg/libjpeg-3.html#ss3.1
+                   The non-Adobe conversion is equivalent to:
+                       rval = black - black * cyan / 255
+                       ...
+                   The Adobe conversion is equivalent to:
+                       rval = black - black * (255 - cyan) / 255
+                       ...
+                   Note that cyan is the complement to red, and we
+                   are subtracting the complement color (weighted
+                   by black) from black.  For Adobe conversions,
+                   where they've already inverted the CMY but not
+                   the K, we have to invert again.  The results
+                   must be clipped to [0 ... 255]. */
+                for (j = k = 0; j < w; j++) {
+                    cyan = rowbuffer[k++];
+                    magenta = rowbuffer[k++];
+                    yellow = rowbuffer[k++];
+                    black = rowbuffer[k++];
+                    if (cinfo.saw_Adobe_marker) {
+                        rval = (black * cyan) / 255;
+                        gval = (black * magenta) / 255;
+                        bval = (black * yellow) / 255;
+                    } else {
+                        rval = black * (255 - cyan) / 255;
+                        gval = black * (255 - magenta) / 255;
+                        bval = black * (255 - yellow) / 255;
+                    }
+                    rval = L_MIN(L_MAX(rval, 0), 255);
+                    gval = L_MIN(L_MAX(gval, 0), 255);
+                    bval = L_MIN(L_MAX(bval, 0), 255);
+                    composeRGBPixel(rval, gval, bval, ppixel);
+                    ppixel++;
+                }
+            }
+        } else {    /* 8 bpp grayscale or colormapped pix */
+            line = data + i * wpl;
+            for (j = 0; j < w; j++)
+                SET_DATA_BYTE(line, j, rowbuffer[j]);
+        }
+    }
+
+    nwarn = cinfo.err->num_warnings;
+    if (pnwarn) *pnwarn = nwarn;
+
+    /* If the pixel density is neither 1 nor 2, it may not be defined.
+     * In that case, don't set the resolution.  */
+    if (cinfo.density_unit == 1) {  /* pixels per inch */
+        pixSetXRes(pix, cinfo.X_density);
+        pixSetYRes(pix, cinfo.Y_density);
+    } else if (cinfo.density_unit == 2) {  /* pixels per centimeter */
+        pixSetXRes(pix, (l_int32)((l_float32)cinfo.X_density * 2.54 + 0.5));
+        pixSetYRes(pix, (l_int32)((l_float32)cinfo.Y_density * 2.54 + 0.5));
+    }
+
+    if (cinfo.output_components != spp)
+        fprintf(stderr, "output spp = %d, spp = %d\n",
+                cinfo.output_components, spp);
+
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+    LEPT_FREE(rowbuffer);
+
+    if (nwarn > 0) {
+        if (hint & L_JPEG_FAIL_ON_BAD_DATA) {
+            L_ERROR("fail with %d warning(s) of bad data\n", procName, nwarn);
+            pixDestroy(&pix);
+        } else {
+            L_WARNING("%d warning(s) of bad data\n", procName, nwarn);
+        }
+    }
+
+    return pix;
+}
+
 
 /*---------------------------------------------------------------------*
  *                     Read jpeg metadata from file                    *
@@ -598,6 +842,69 @@ jmp_buf                        jmpbuf;  /* must be local to the function */
     return 0;
 }
 
+/*!
+ * \brief   readHeaderJpeg()
+ *
+ * \param[in]    data const; jpeg-encoded
+ * \param[in]    size of data
+ * \param[out]   pw [optional]
+ *           [out]   ph ([optional]
+ *           [out]   pspp ([optional]  samples/pixel
+ * \param[out]   pycck [optional]  1 if ycck color space; 0 otherwise
+ * \param[out]   pcmyk [optional]  1 if cmyk color space; 0 otherwise
+ * \return  0 if OK, 1 on error
+ */
+l_int32
+readHeaderJpegBuffer(const unsigned char * inbuffer,
+                     unsigned long insize,
+                     l_int32  *pw,
+                     l_int32  *ph,
+                     l_int32  *pspp,
+                     l_int32  *pycck,
+                     l_int32  *pcmyk)
+{
+    l_int32                        spp;
+    struct jpeg_decompress_struct  cinfo;
+    struct jpeg_error_mgr          jerr;
+    jmp_buf                        jmpbuf;  /* must be local to the function */
+
+    PROCNAME("freadHeaderJpegBuffer");
+
+    if (pw) *pw = 0;
+    if (ph) *ph = 0;
+    if (pspp) *pspp = 0;
+    if (pycck) *pycck = 0;
+    if (pcmyk) *pcmyk = 0;
+    if (!pw && !ph && !pspp && !pycck && !pcmyk)
+        return ERROR_INT("no results requested", procName, 1);
+
+    /* Modify the jpeg error handling to catch fatal errors  */
+    cinfo.err = jpeg_std_error(&jerr);
+    cinfo.client_data = (void *)&jmpbuf;
+    jerr.error_exit = jpeg_error_catch_all_1;
+    if (setjmp(jmpbuf))
+        return ERROR_INT("internal jpeg error", procName, 1);
+
+    /* Initialize the jpeg structs for reading the header */
+    jpeg_create_decompress(&cinfo);
+
+    jpeg_mem_src(&cinfo, inbuffer, insize);
+    jpeg_read_header(&cinfo, TRUE);
+    jpeg_calc_output_dimensions(&cinfo);
+
+    spp = cinfo.out_color_components;
+    if (pspp) *pspp = spp;
+    if (pw) *pw = cinfo.output_width;
+    if (ph) *ph = cinfo.output_height;
+    if (pycck) *pycck =
+                       (cinfo.jpeg_color_space == JCS_YCCK && spp == 4);
+    if (pcmyk) *pcmyk =
+                       (cinfo.jpeg_color_space == JCS_CMYK && spp == 4);
+
+    jpeg_destroy_decompress(&cinfo);
+    return 0;
+}
+
 
 /*
  *  fgetJpegResolution()
@@ -655,6 +962,62 @@ jmp_buf                        jmpbuf;  /* must be local to the function */
 
     jpeg_destroy_decompress(&cinfo);
     rewind(fp);
+    return 0;
+}
+
+/*
+ *  getJpegBufferResolution()
+ *
+ *      Input:  inbuffer (data const; jpeg-encoded)
+ *              insize (size of data)
+ *              &xres, &yres (<return> resolution in ppi)
+ *      Return: 0 if OK; 1 on error
+ *
+ *  Notes:
+ *      (1) If neither resolution field is set, this is not an error;
+ *          the returned resolution values are 0 (designating 'unknown').
+ *      (2) Side-effect: this rewinds the stream.
+ */
+l_int32
+getJpegBufferResolution(const unsigned char * inbuffer,
+                        unsigned long insize,
+                        l_int32  *pxres,
+                        l_int32  *pyres)
+{
+    struct jpeg_decompress_struct  cinfo;
+    struct jpeg_error_mgr          jerr;
+    jmp_buf                        jmpbuf;  /* must be local to the function */
+
+    PROCNAME("fgetJpegResolution");
+
+    if (pxres) *pxres = 0;
+    if (pyres) *pyres = 0;
+    if (!pxres || !pyres)
+        return ERROR_INT("&xres and &yres not both defined", procName, 1);
+
+    /* Modify the jpeg error handling to catch fatal errors  */
+    cinfo.err = jpeg_std_error(&jerr);
+    cinfo.client_data = (void *)&jmpbuf;
+    jerr.error_exit = jpeg_error_catch_all_1;
+    if (setjmp(jmpbuf))
+        return ERROR_INT("internal jpeg error", procName, 1);
+
+    /* Initialize the jpeg structs for reading the header */
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, inbuffer, insize);
+    jpeg_read_header(&cinfo, TRUE);
+
+    /* It is common for the input resolution to be omitted from the
+     * jpeg file.  If density_unit is not 1 or 2, simply return 0. */
+    if (cinfo.density_unit == 1) {  /* pixels/inch */
+        *pxres = cinfo.X_density;
+        *pyres = cinfo.Y_density;
+    } else if (cinfo.density_unit == 2) {  /* pixels/cm */
+        *pxres = (l_int32)((l_float32)cinfo.X_density * 2.54 + 0.5);
+        *pyres = (l_int32)((l_float32)cinfo.Y_density * 2.54 + 0.5);
+    }
+
+    jpeg_destroy_decompress(&cinfo);
     return 0;
 }
 
@@ -944,6 +1307,198 @@ jmp_buf                      jmpbuf;  /* must be local to the function */
     return 0;
 }
 
+/*!
+ * \brief   pixWriteJpegBuffer()
+ *
+ * \param[out]   pdata data of jpeg compressed image
+ * \param[out]   psize size of returned data
+ * \param[in]    pixs  any depth; cmap is OK
+ * \param[in]    quality  1 - 100; 75 is default value; 0 is also default
+ * \param[in]    progressive 0 for baseline sequential; 1 for progressive
+ * \return  0 if OK, 1 on error
+ *
+ * <pre>
+ * Notes:
+ *      (1) Progressive encoding gives better compression, at the
+ *          expense of slower encoding and decoding.
+ *      (2) Standard chroma subsampling is 2x2 on both the U and V
+ *          channels.  For highest quality, use no subsampling; this
+ *          option is set by pixSetChromaSampling(pix, 0).
+ *      (3) The only valid pixel depths in leptonica are 1, 2, 4, 8, 16
+ *          and 32 bpp.  However, it is possible, and in some cases desirable,
+ *          to write out a jpeg file using an rgb pix that has 24 bpp.
+ *          This can be created by appending the raster data for a 24 bpp
+ *          image (with proper scanline padding) directly to a 24 bpp
+ *          pix that was created without a data array.
+ *      (4) There are two compression paths in this function:
+ *          * Grayscale image, no colormap: compress as 8 bpp image.
+ *          * rgb full color image: copy each line into the color
+ *            line buffer, and compress as three 8 bpp images.
+ *      (5) Under the covers, the jpeg library transforms rgb to a
+ *          luminance-chromaticity triple, each component of which is
+ *          also 8 bits, and compresses that.  It uses 2 Huffman tables,
+ *          a higher resolution one (with more quantization levels)
+ *          for luminosity and a lower resolution one for the chromas.
+ * </pre>
+ */
+l_int32
+pixWriteJpegBuffer(l_uint8  **pdata,
+                   size_t    *psize,
+                   PIX     *pixs,
+                   l_int32  quality,
+                   l_int32  progressive)
+{
+    l_int32                      xres, yres;
+    l_int32                      i, j, k;
+    l_int32                      w, h, d, wpl, spp, colorflag, rowsamples;
+    l_uint32                    *ppixel, *line, *data;
+    JSAMPROW                     rowbuffer;
+    PIX                         *pix;
+    struct jpeg_compress_struct  cinfo;
+    struct jpeg_error_mgr        jerr;
+    const char                  *text;
+    jmp_buf                      jmpbuf;  /* must be local to the function */
+
+    PROCNAME("pixWriteJpegBuffer");
+
+    if (!pixs)
+        return ERROR_INT("pixs not defined", procName, 1);
+    if (quality <= 0)
+        quality = 75;  /* default */
+
+    /* If necessary, convert the pix so that it can be jpeg compressed.
+     * The colormap is removed based on the source, so if the colormap
+     * has only gray colors, the image will be compressed with spp = 1. */
+    pixGetDimensions(pixs, &w, &h, &d);
+    pix = NULL;
+    if (pixGetColormap(pixs) != NULL) {
+        L_INFO("removing colormap; may be better to compress losslessly\n",
+               procName);
+        pix = pixRemoveColormap(pixs, REMOVE_CMAP_BASED_ON_SRC);
+    } else if (d >= 8 && d != 16) {  /* normal case; no rewrite */
+        pix = pixClone(pixs);
+    } else if (d < 8 || d == 16) {
+        L_INFO("converting from %d to 8 bpp\n", procName, d);
+        pix = pixConvertTo8(pixs, 0);  /* 8 bpp, no cmap */
+    } else {
+        L_ERROR("unknown pix type with d = %d and no cmap\n", procName, d);
+        return 1;
+    }
+    if (!pix)
+        return ERROR_INT("pix not made", procName, 1);
+
+    rowbuffer = NULL;
+
+    /* Modify the jpeg error handling to catch fatal errors  */
+    cinfo.err = jpeg_std_error(&jerr);
+    cinfo.client_data = (void *)&jmpbuf;
+    jerr.error_exit = jpeg_error_catch_all_1;
+    if (setjmp(jmpbuf)) {
+        LEPT_FREE(rowbuffer);
+        pixDestroy(&pix);
+        return ERROR_INT("internal jpeg error", procName, 1);
+    }
+
+    /* Initialize the jpeg structs for compression */
+    jpeg_create_compress(&cinfo);
+    jpeg_mem_dest(&cinfo, pdata, psize);
+    cinfo.image_width  = w;
+    cinfo.image_height = h;
+
+    /* Set the color space and number of components */
+    d = pixGetDepth(pix);
+    if (d == 8) {
+        colorflag = 0;    /* 8 bpp grayscale; no cmap */
+        cinfo.input_components = 1;
+        cinfo.in_color_space = JCS_GRAYSCALE;
+    } else {  /* d == 32 || d == 24 */
+        colorflag = 1;    /* rgb */
+        cinfo.input_components = 3;
+        cinfo.in_color_space = JCS_RGB;
+    }
+
+    jpeg_set_defaults(&cinfo);
+
+    /* Setting optimize_coding to TRUE seems to improve compression
+     * by approx 2-4 percent, and increases comp time by approx 20%. */
+    cinfo.optimize_coding = FALSE;
+
+    /* Set resolution in pixels/in (density_unit: 1 = in, 2 = cm) */
+    xres = pixGetXRes(pix);
+    yres = pixGetYRes(pix);
+    if ((xres != 0) && (yres != 0)) {
+        cinfo.density_unit = 1;  /* designates pixels per inch */
+        cinfo.X_density = xres;
+        cinfo.Y_density = yres;
+    }
+
+    /* Set the quality and progressive parameters */
+    jpeg_set_quality(&cinfo, quality, TRUE);
+    if (progressive)
+        jpeg_simple_progression(&cinfo);
+
+    /* Set the chroma subsampling parameters.  This is done in
+     * YUV color space.  The Y (intensity) channel is never subsampled.
+     * The standard subsampling is 2x2 on both the U and V channels.
+     * Notation on this is confusing.  For a nice illustrations, see
+     *   http://en.wikipedia.org/wiki/Chroma_subsampling
+     * The standard subsampling is written as 4:2:0.
+     * We allow high quality where there is no subsampling on the
+     * chroma channels: denoted as 4:4:4.  */
+    if (pixs->special == L_NO_CHROMA_SAMPLING_JPEG) {
+        cinfo.comp_info[0].h_samp_factor = 1;
+        cinfo.comp_info[0].v_samp_factor = 1;
+        cinfo.comp_info[1].h_samp_factor = 1;
+        cinfo.comp_info[1].v_samp_factor = 1;
+        cinfo.comp_info[2].h_samp_factor = 1;
+        cinfo.comp_info[2].v_samp_factor = 1;
+    }
+
+    jpeg_start_compress(&cinfo, TRUE);
+
+    if ((text = pixGetText(pix)))
+        jpeg_write_marker(&cinfo, JPEG_COM, (const JOCTET *)text, strlen(text));
+
+    /* Allocate row buffer */
+    spp = cinfo.input_components;
+    rowsamples = spp * w;
+    if ((rowbuffer = (JSAMPROW)LEPT_CALLOC(sizeof(JSAMPLE), rowsamples))
+        == NULL) {
+        pixDestroy(&pix);
+        return ERROR_INT("calloc fail for rowbuffer", procName, 1);
+    }
+
+    data = pixGetData(pix);
+    wpl  = pixGetWpl(pix);
+    for (i = 0; i < h; i++) {
+        line = data + i * wpl;
+        if (colorflag == 0) {        /* 8 bpp gray */
+            for (j = 0; j < w; j++)
+                rowbuffer[j] = GET_DATA_BYTE(line, j);
+        } else {  /* colorflag == 1 */
+            if (d == 24) {  /* See note 3 above; special case of 24 bpp rgb */
+                jpeg_write_scanlines(&cinfo, (JSAMPROW *)&line, 1);
+            } else {  /* standard 32 bpp rgb */
+                ppixel = line;
+                for (j = k = 0; j < w; j++) {
+                    rowbuffer[k++] = GET_DATA_BYTE(ppixel, COLOR_RED);
+                    rowbuffer[k++] = GET_DATA_BYTE(ppixel, COLOR_GREEN);
+                    rowbuffer[k++] = GET_DATA_BYTE(ppixel, COLOR_BLUE);
+                    ppixel++;
+                }
+            }
+        }
+        if (d != 24)
+            jpeg_write_scanlines(&cinfo, &rowbuffer, 1);
+    }
+    jpeg_finish_compress(&cinfo);
+
+    pixDestroy(&pix);
+    LEPT_FREE(rowbuffer);
+    jpeg_destroy_compress(&cinfo);
+    return 0;
+}
+
 
 /*---------------------------------------------------------------------*
  *                         Read/write to memory                        *
@@ -989,17 +1544,7 @@ PIX      *pix;
     if (!data)
         return (PIX *)ERROR_PTR("data not defined", procName, NULL);
 
-    if ((fp = fopenReadFromMemory(data, size)) == NULL)
-        return (PIX *)ERROR_PTR("stream not opened", procName, NULL);
-    pix = pixReadStreamJpeg(fp, cmflag, reduction, pnwarn, hint);
-    if (pix) {
-        ret = fgetJpegComment(fp, &comment);
-        if (!ret && comment) {
-            pixSetText(pix, (char *)comment);
-            LEPT_FREE(comment);
-        }
-    }
-    fclose(fp);
+    pix = pixReadJpegBuffer(data, size, cmflag, reduction, pnwarn, hint);
     if (!pix) L_ERROR("pix not read\n", procName);
     return pix;
 }
