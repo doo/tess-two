@@ -45,6 +45,7 @@
  *          l_int32              l_generateCIDataForPdf()
  *          L_COMP_DATA         *l_generateFlateDataPdf()
  *          L_COMP_DATA         *l_generateJpegData()
+ *          L_COMP_DATA         *l_generateJpegBufferData()
  *          static L_COMP_DATA  *l_generateJp2kData()
  *
  *       With transcoding
@@ -53,6 +54,7 @@
  *          L_COMP_DATA         *l_generateFlateData()
  *          static L_COMP_DATA  *pixGenerateFlateData()
  *          static L_COMP_DATA  *pixGenerateJpegData()
+ *          static L_COMP_DATA  *pixGenerateJpegBufferData()
  *          static L_COMP_DATA  *pixGenerateG4Data()
  *          L_COMP_DATA         *l_generateG4Data()
  *
@@ -103,6 +105,8 @@ static const l_int32  DEFAULT_INPUT_RES = 300;
 static L_COMP_DATA  *l_generateJp2kData(const char *fname);
 static L_COMP_DATA  *pixGenerateFlateData(PIX *pixs, l_int32 ascii85flag);
 static L_COMP_DATA  *pixGenerateJpegData(PIX *pixs, l_int32 ascii85flag,
+                                         l_int32 quality);
+static L_COMP_DATA  *pixGenerateJpegBufferData(PIX *pixs, l_int32 ascii85flag,
                                          l_int32 quality);
 static L_COMP_DATA  *pixGenerateG4Data(PIX *pixs, l_int32 ascii85flag);
 
@@ -848,6 +852,74 @@ L_COMP_DATA  *cid;
     return cid;
 }
 
+/*!
+ * \brief   l_generateJpegBufferData()
+ *
+ * \param[in]    data const; jpeg-encoded
+ * \param[in]    size of data
+ * \param[in]    ascii85flag 0 for jpeg; 1 for ascii85-encoded jpeg
+ * \return  cid containing jpeg data, or NULL on error
+ *
+ * <pre>
+ * Notes:
+ *      (1) Set ascii85flag:
+ *           ~ 0 for binary data (not permitted in PostScript)
+ *           ~ 1 for ascii85 (5 for 4) encoded binary data
+ *               (not permitted in pdf)
+ * </pre>
+ */
+L_COMP_DATA *
+l_generateJpegBufferData(const unsigned char * inbuffer,
+                         unsigned long insize,
+                         l_int32      ascii85flag)
+{
+    l_uint8      *datacomp = NULL;  /* entire jpeg compressed buffer */
+    char         *data85 = NULL;  /* ascii85 encoded jpeg compressed buffer */
+    l_int32       w, h, xres, yres, bps, spp;
+    l_int32       nbytes85;
+    size_t        nbytescomp;
+    L_COMP_DATA  *cid;
+
+    PROCNAME("l_generateJpegBufferData");
+
+    readHeaderJpegBuffer(inbuffer, insize, &w, &h, &spp, NULL, NULL);
+    bps = 8;
+    getJpegBufferResolution(inbuffer, insize, &xres, &yres);
+
+    datacomp = inbuffer;
+    nbytescomp = insize;
+
+    /* Optionally, encode the compressed data */
+    if (ascii85flag == 1) {
+        data85 = encodeAscii85(datacomp, nbytescomp, &nbytes85);
+        LEPT_FREE(datacomp);
+        if (!data85)
+            return (L_COMP_DATA *)ERROR_PTR("data85 not made", procName, NULL);
+        else
+            data85[nbytes85 - 1] = '\0';  /* remove the newline */
+    }
+
+    cid = (L_COMP_DATA *)LEPT_CALLOC(1, sizeof(L_COMP_DATA));
+    if (!cid) {
+        LEPT_FREE(datacomp);
+        LEPT_FREE(data85);
+        return (L_COMP_DATA *)ERROR_PTR("cid not made", procName, NULL);
+    }
+    if (ascii85flag == 0) {
+        cid->datacomp = datacomp;
+    } else {  /* ascii85 */
+        cid->data85 = data85;
+        cid->nbytes85 = nbytes85;
+    }
+    cid->type = L_JPEG_ENCODE;
+    cid->nbytescomp = nbytescomp;
+    cid->w = w;
+    cid->h = h;
+    cid->bps = bps;
+    cid->spp = spp;
+    cid->res = xres;
+    return cid;
+}
 
 /*!
  * \brief   l_generateJp2kData()
@@ -1049,7 +1121,7 @@ PIXCMAP  *cmap;
     }
 
     if (type == L_JPEG_ENCODE) {
-        if ((*pcid = pixGenerateJpegData(pixs, ascii85, quality)) == NULL)
+        if ((*pcid = pixGenerateJpegBufferData(pixs, ascii85, quality)) == NULL)
             return ERROR_INT("jpeg data not made", procName, 1);
     } else if (type == L_G4_ENCODE) {
         if ((*pcid = pixGenerateG4Data(pixs, ascii85)) == NULL)
@@ -1222,7 +1294,6 @@ PIXCMAP      *cmap;
     return cid;
 }
 
-
 /*!
  * \brief   pixGenerateJpegData()
  *
@@ -1243,9 +1314,9 @@ pixGenerateJpegData(PIX     *pixs,
                     l_int32  ascii85flag,
                     l_int32  quality)
 {
-l_int32       d;
-char         *fname;
-L_COMP_DATA  *cid;
+    l_int32       d;
+    char         *fname;
+    L_COMP_DATA  *cid;
 
     PROCNAME("pixGenerateJpegData");
 
@@ -1257,13 +1328,55 @@ L_COMP_DATA  *cid;
     if (d != 8 && d != 32)
         return (L_COMP_DATA *)ERROR_PTR("pixs not 8 or 32 bpp", procName, NULL);
 
-        /* Compress to a temp jpeg file */
+    /* Compress to a temp jpeg file */
     fname = l_makeTempFilename();
     pixWriteJpeg(fname, pixs, quality, 0);
 
     cid = l_generateJpegData(fname, ascii85flag);
     lept_rmfile(fname);
     LEPT_FREE(fname);
+    return cid;
+}
+
+
+/*!
+ * \brief   pixGenerateJpegBufferData()
+ *
+ * \param[in]    pixs 8 or 32 bpp, no colormap
+ * \param[in]    ascii85flag 0 for jpeg; 1 for ascii85-encoded jpeg
+ * \param[in]    quality 0 for default, which is 75
+ * \return  cid jpeg compressed data, or NULL on error
+ *
+ * <pre>
+ * Notes:
+ *      (1) Set ascii85flag:
+ *           ~ 0 for binary data (not permitted in PostScript)
+ *           ~ 1 for ascii85 (5 for 4) encoded binary data
+ * </pre>
+ */
+static L_COMP_DATA *
+pixGenerateJpegBufferData(PIX     *pixs,
+                    l_int32  ascii85flag,
+                    l_int32  quality)
+{
+l_int32       d;
+L_COMP_DATA  *cid;
+
+    PROCNAME("pixGenerateJpegBufferData");
+
+    if (!pixs)
+        return (L_COMP_DATA *)ERROR_PTR("pixs not defined", procName, NULL);
+    if (pixGetColormap(pixs))
+        return (L_COMP_DATA *)ERROR_PTR("pixs has colormap", procName, NULL);
+    d = pixGetDepth(pixs);
+    if (d != 8 && d != 32)
+        return (L_COMP_DATA *)ERROR_PTR("pixs not 8 or 32 bpp", procName, NULL);
+
+    l_uint8 *jpgBuffer = NULL;
+    size_t jpgBufferSize = 0;
+    pixWriteJpegBuffer(&jpgBuffer, &jpgBufferSize, pixs, quality, 0);
+
+    cid = l_generateJpegBufferData(jpgBuffer, jpgBufferSize, ascii85flag);
     return cid;
 }
 

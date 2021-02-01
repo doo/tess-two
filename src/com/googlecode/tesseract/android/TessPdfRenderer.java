@@ -51,6 +51,21 @@ public class TessPdfRenderer {
     }
 
     /**
+     * Constructs an instance of a Tesseract PDF renderer.
+     *
+     * When the instance of TessPdfRenderer is no longer needed, its
+     * {@link #recycle} method must be invoked to dispose of it.
+     *
+     * This [TessPdfRenderer] will write the generated pdf file to the internal byte array buffer.
+     *
+     * @param baseApi API instance to use for performing OCR
+     */
+    public TessPdfRenderer(TessBaseAPI baseApi) {
+        this.mNativePdfRenderer = nativeCreateWithBuffer(baseApi.getNativeData());
+        mRecycled = false;
+    }
+
+    /**
      * @return A pointer to the native TessPdfRenderer object.
      */
     public long getNativePdfRenderer() {
@@ -70,6 +85,8 @@ public class TessPdfRenderer {
     }
 
     private static native long nativeCreate(long tessBaseAPINativeData, String outputPath);
+
+    private static native long nativeCreateWithBuffer(long tessBaseAPINativeData);
 
     private static native void nativeRecycle(long nativePointer);
 

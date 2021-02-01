@@ -906,6 +906,14 @@ public class TessBaseAPI {
                 imageToWrite, tessPdfRenderer.getNativePdfRenderer());
     }
 
+    /**
+     * @param tessPdfRenderer the renderer instance to use
+     * @return byte array data of the generated pdf document
+     */
+    public byte[] getOutputBuffer(TessPdfRenderer tessPdfRenderer) {
+        return nativeGetOutputBuffer(tessPdfRenderer.getNativePdfRenderer());
+    }
+
     /*package*/ long getNativeData() {
         return mNativeData;
     }
@@ -993,4 +1001,6 @@ public class TessBaseAPI {
     private native boolean nativeEndDocument(long rendererPointer);
 
     private native boolean nativeAddPageToDocument(long mNativeData, long nativePix, String imagePath, long rendererPointer);
+
+    private native byte[] nativeGetOutputBuffer(long rendererPointer);
 }

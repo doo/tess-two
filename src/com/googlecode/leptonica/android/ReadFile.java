@@ -49,15 +49,16 @@ public class ReadFile {
             return null;
         }
 
-        final BitmapFactory.Options opts = new BitmapFactory.Options();
-        opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
+//        final BitmapFactory.Options opts = new BitmapFactory.Options();
+//        opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
+//
+//        final Bitmap bmp = BitmapFactory.decodeByteArray(encodedData, 0, encodedData.length,
+//                opts);
+//        final Pix pix = readBitmap(bmp);
 
-        final Bitmap bmp = BitmapFactory.decodeByteArray(encodedData, 0, encodedData.length,
-                opts);
-        final Pix pix = readBitmap(bmp);
+//        bmp.recycle();
 
-        bmp.recycle();
-
+        final Pix pix = new Pix(nativeReadMem(encodedData, encodedData.length));
         return pix;
     }
 

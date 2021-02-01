@@ -632,6 +632,16 @@ jlong Java_com_googlecode_tesseract_android_TessPdfRenderer_nativeCreate(JNIEnv 
   return (jlong) result;
 }
 
+jlong Java_com_googlecode_tesseract_android_TessPdfRenderer_nativeCreateWithBuffer(JNIEnv *env,
+                                                                         jobject thiz,
+                                                                         jlong jTessBaseApi) {
+  native_data_t *nat = (native_data_t*) jTessBaseApi;
+
+  tesseract::TessPDFRenderer* result = new tesseract::TessPDFRenderer(nat->api.GetDatapath(), false);
+
+  return (jlong) result;
+}
+
 void Java_com_googlecode_tesseract_android_TessPdfRenderer_nativeRecycle(JNIEnv *env,
                                                                          jobject thiz,
                                                                          jlong jPointer) {
@@ -680,6 +690,19 @@ jboolean Java_com_googlecode_tesseract_android_TessBaseAPI_nativeAddPageToDocume
   env->ReleaseStringUTFChars(jPath, inputImage);
 
   return true;
+}
+
+jbyteArray Java_com_googlecode_tesseract_android_TessBaseAPI_nativeGetOutputBuffer(JNIEnv *env,
+                                                                             jobject thiz,
+                                                                             jlong jRenderer) {
+
+  tesseract::TessPDFRenderer* pdfRenderer = (tesseract::TessPDFRenderer*) jRenderer;
+  auto outputBuffer = pdfRenderer->outputBuffer();
+  auto len = outputBuffer.size();
+  auto byteArray = env->NewByteArray(len);
+  env->SetByteArrayRegion(byteArray, 0, len, reinterpret_cast<const jbyte *>(outputBuffer.data()));
+
+  return byteArray;
 }
 
 #ifdef __cplusplus

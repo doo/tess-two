@@ -1056,10 +1056,13 @@ LEPT_DLL extern PIX * pixReadJpeg ( const char *filename, l_int32 cmapflag, l_in
 LEPT_DLL extern PIX * pixReadStreamJpeg ( FILE *fp, l_int32 cmapflag, l_int32 reduction, l_int32 *pnwarn, l_int32 hint );
 LEPT_DLL extern l_int32 readHeaderJpeg ( const char *filename, l_int32 *pw, l_int32 *ph, l_int32 *pspp, l_int32 *pycck, l_int32 *pcmyk );
 LEPT_DLL extern l_int32 freadHeaderJpeg ( FILE *fp, l_int32 *pw, l_int32 *ph, l_int32 *pspp, l_int32 *pycck, l_int32 *pcmyk );
+LEPT_DLL extern l_int32 readHeaderJpegBuffer (const unsigned char *inbuffer, unsigned long insize, l_int32 *pw, l_int32 *ph, l_int32 *pspp, l_int32 *pycck, l_int32 *pcmyk );
 LEPT_DLL extern l_int32 fgetJpegResolution ( FILE *fp, l_int32 *pxres, l_int32 *pyres );
+LEPT_DLL extern l_int32 getJpegBufferResolution ( const unsigned char *inbuffer, unsigned long insize, l_int32 *pxres, l_int32 *pyres );
 LEPT_DLL extern l_int32 fgetJpegComment ( FILE *fp, l_uint8 **pcomment );
 LEPT_DLL extern l_int32 pixWriteJpeg ( const char *filename, PIX *pix, l_int32 quality, l_int32 progressive );
 LEPT_DLL extern l_int32 pixWriteStreamJpeg ( FILE *fp, PIX *pixs, l_int32 quality, l_int32 progressive );
+LEPT_DLL extern l_int32 pixWriteJpegBuffer ( l_uint8 **pdata, size_t *psize, PIX *pixs, l_int32 quality, l_int32 progressive );
 LEPT_DLL extern PIX * pixReadMemJpeg ( const l_uint8 *data, size_t size, l_int32 cmflag, l_int32 reduction, l_int32 *pnwarn, l_int32 hint );
 LEPT_DLL extern l_int32 readHeaderMemJpeg ( const l_uint8 *data, size_t size, l_int32 *pw, l_int32 *ph, l_int32 *pspp, l_int32 *pycck, l_int32 *pcmyk );
 LEPT_DLL extern l_int32 pixWriteMemJpeg ( l_uint8 **pdata, size_t *psize, PIX *pix, l_int32 quality, l_int32 progressive );
